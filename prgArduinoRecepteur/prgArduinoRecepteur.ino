@@ -80,7 +80,7 @@ void setup() {
     digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);
     digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);
     digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
-    digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte
+    digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
 
     // Petite pause, avant de passer à la boucle LOOP
     delay(100);
