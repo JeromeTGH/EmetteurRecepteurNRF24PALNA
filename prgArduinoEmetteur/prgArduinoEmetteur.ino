@@ -72,8 +72,8 @@ void setup() {
     pinMode(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, OUTPUT);
 
     // Définition des états initiaux des lignes de sorties
-    digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);             // Led "batterie faible" éteinte
-    digitalWrite(sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA, LOW);          // Led "programme démarré" éteinte
+    digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);             // Led "batterie faible" éteinte, pour l'instant
+    digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
 
     // Petite pause, avant de passer à la boucle LOOP
     delay(100);
