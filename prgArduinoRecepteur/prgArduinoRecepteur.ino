@@ -24,6 +24,8 @@
   
 */
 
+// Inclusion de la librairie nRF24 (auteur : https://github.com/nRF24/RF24)
+#include <RF24.h>
 
 // Définition des broches de raccordement à l'ATmega328P
 //      Remarque 1 : hors lignes UART (TX/RX) et SPI (MISO/MOSI/SCK)
@@ -54,6 +56,18 @@
                                                                                     // Nota 2 : la valeur à mettre ici doit être comprise entre 0 et 116, puisqu'on pourra ajouter entre 0 et 9 "crans" (via le sélecteur à 10 positions)
                                                                                     // Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur arbitraire (à ajuster personnellement, en fait)
 
+// Définition du nom du tunnel de communication
+#define nom_de_notre_tunnel_de_communication                            "ERJT1";    // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
+//uint8_t* pointeur_vers_notre_nom_de_tunnel_de_communication = &nom_de_notre_tunnel_de_communication;
+
+// Définitions des messages pouvant être reçus, selon quel bouton poussoir est actionné au niveau de l'émetteur
+const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
+const char message_si_bouton_poussoir_2_appuye[] = "Bouton_2_appuye";
+const char message_si_bouton_poussoir_3_appuye[] = "Bouton_3_appuye";
+const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
+
+// Instanciation de la librairie RF24
+RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
 
 
 // ========================
@@ -88,6 +102,21 @@ void setup() {
     digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);
     digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
     digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
+
+    // Initialisation du module nRF24L01
+    if (!module_nrf24.begin()) {
+        // En cas d'échec d'initialisation : boucle infinie / suspension du programme
+        while (1) {}
+    }
+
+    // Paramétrage de la librairie RF24
+    module_nrf24.setPayloadSize(15);                                                    // Nombre de caractères à envoyer, au niveau des messages (32, au maximum)
+    module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
+    module_nrf24.setChannel(canal_de_communication_de_base_pour_transmissions_NRF24);   // Fixation du canal de communication de base
+    module_nrf24.setDataRate(RF24_1MBPS);                                               // Fixation du débit de transmission à 1 MBPS
+    module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour communiquer le plus loin possible)
+    module_nrf24.openReadingPipe(0, &nom_de_notre_tunnel_de_communication);             // Ouverture du tunnel de transmission en LECTURE, avec le "nom" qu'on lui a donné (via le "pipe 0", par exemple)
+    module_nrf24.startListening();                                                      // Activation de l'écoute, car ici c'est le récepteur !
 
     // Petite pause, avant de passer à la boucle LOOP
     delay(100);
