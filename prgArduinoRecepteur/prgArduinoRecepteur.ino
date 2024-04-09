@@ -118,8 +118,11 @@ void setup() {
     module_nrf24.openReadingPipe(0, &nom_de_notre_tunnel_de_communication);             // Ouverture du tunnel de transmission en LECTURE, avec le "nom" qu'on lui a donné (via le "pipe 0", par exemple)
     module_nrf24.startListening();                                                      // Activation de l'écoute, car ici c'est le récepteur !
 
-    // Petite pause, avant de passer à la boucle LOOP
+    // Petite pause de stabilisation
     delay(100);
+
+    // Allumage de la LED "programme démarré", et passage à la boucle LOOP
+    digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
 
 }
 

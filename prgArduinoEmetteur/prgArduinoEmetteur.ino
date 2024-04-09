@@ -59,7 +59,6 @@
 
 // Définition du nom du tunnel de communication
 #define nom_de_notre_tunnel_de_communication                            "ERJT1"     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
-//uint8_t* pointeur_vers_notre_nom_de_tunnel_de_communication = &nom_de_notre_tunnel_de_communication;
 
 // Définitions des messages à émettre, suivant quel bouton poussoir est actionné
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
@@ -69,6 +68,12 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 
 // Instanciation de la librairie RF24
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
+
+// Variables
+bool etat_precedent_bouton_poussoir_1;
+bool etat_precedent_bouton_poussoir_2;
+bool etat_precedent_bouton_poussoir_3;
+bool etat_precedent_bouton_poussoir_4;
 
 
 // ========================
@@ -110,9 +115,12 @@ void setup() {
     module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour communiquer le plus loin possible)
     module_nrf24.openWritingPipe(&nom_de_notre_tunnel_de_communication);                // Ouverture du tunnel de transmission en ÉCRITURE, avec le "nom" qu'on lui a donné (via le "pipe 0", obligatoirement en émission)
     module_nrf24.stopListening();                                                       // Arrêt de l'écoute, car ici c'est l'émetteur, donc on va émettre !
-
-    // Petite pause, avant de passer à la boucle LOOP
+   
+    // Petite pause de stabilisation
     delay(100);
+
+    // Allumage de la LED "programme démarré", et passage à la boucle LOOP
+    digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
 
 }
 
@@ -121,5 +129,60 @@ void setup() {
 // Boucle principale
 // =================
 void loop() {
-  
+ 
+    // Traitement du bouton 1
+    if(estEnfonceCeBoutonPoussoir(1)) {
+        while(estEnfonceCeBoutonPoussoir(1)) = {delay(10);}                                                         // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+        module_nrf24.write(&message_si_bouton_poussoir_1_appuye, sizeof(message_si_bouton_poussoir_1_appuye));      // Envoi du message correspondant
+        delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+    }
+
+    // Traitement du bouton 2
+    if(estEnfonceCeBoutonPoussoir(2)) {
+        while(estEnfonceCeBoutonPoussoir(2)) = {delay(10);}                                                         // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+        module_nrf24.write(&message_si_bouton_poussoir_2_appuye, sizeof(message_si_bouton_poussoir_2_appuye));      // Envoi du message correspondant
+        delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+    }
+
+    // Traitement du bouton 3
+    if(estEnfonceCeBoutonPoussoir(3)) {
+        while(estEnfonceCeBoutonPoussoir(3)) = {delay(10);}                                                         // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+        module_nrf24.write(&message_si_bouton_poussoir_3_appuye, sizeof(message_si_bouton_poussoir_3_appuye));      // Envoi du message correspondant
+        delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+    }
+
+    // Traitement du bouton 4
+    if(estEnfonceCeBoutonPoussoir(3)) {
+        while(estEnfonceCeBoutonPoussoir(3)) = {delay(10);}                                                         // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+        module_nrf24.write(&message_si_bouton_poussoir_4_appuye, sizeof(message_si_bouton_poussoir_4_appuye));      // Envoi du message correspondant
+        delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+    }
+
+    // Petite pause, avant de reboucler
+    delay(100);
+
+}
+
+
+// =====================================
+// Fonction : estEnfonceCeBoutonPoussoir
+// =====================================
+bool estEnfonceCeBoutonPoussoir(uint8_t numero_de_bouton_poussoir) {
+
+    // Ici, on lit l'état du bouton poussoir demandé (1 à 4, inclus)
+    // La valeur lue vaut HIGH si le bouton est relâché (dû à la résistance pull-up associée), ou LOW si le bouton est appuyé (car il y a mise à la masse)
+    // On inverse donc ce résultat lu, pour retourner HIGH lorsque ce bouton est enfoncé, et LOW lorsqu'il est relâché
+
+    if(numero_de_bouton_poussoir == 1)
+        return !digitalRead(entreeA1_ATmega328P_lecture_etat_bouton_poussoir_voie_1);
+
+    if(numero_de_bouton_poussoir == 2)
+        return !digitalRead(entreeA2_ATmega328P_lecture_etat_bouton_poussoir_voie_2);
+
+    if(numero_de_bouton_poussoir == 3)
+        return !digitalRead(entreeA3_ATmega328P_lecture_etat_bouton_poussoir_voie_3);
+
+    if(numero_de_bouton_poussoir == 4)
+        return !digitalRead(entreeA4_ATmega328P_lecture_etat_bouton_poussoir_voie_4);
+
 }
