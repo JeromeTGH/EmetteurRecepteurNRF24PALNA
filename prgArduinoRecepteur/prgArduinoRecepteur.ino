@@ -60,7 +60,7 @@
 #define nom_de_notre_tunnel_de_communication                            "ERJT1"     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
 //uint8_t* pointeur_vers_notre_nom_de_tunnel_de_communication = &nom_de_notre_tunnel_de_communication;
 
-// Définitions des messages pouvant être reçus, selon quel bouton poussoir est actionné au niveau de l'émetteur (de 1 à 32 caractères, maximum)
+// Définition des messages attendus, selon quel bouton poussoir est actionné au niveau de l'émetteur (de 1 à 32 caractères, maximum)
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
 const char message_si_bouton_poussoir_2_appuye[] = "Bouton_2_appuye";
 const char message_si_bouton_poussoir_3_appuye[] = "Bouton_3_appuye";
@@ -70,7 +70,12 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
 
 // Variables
-uint8_t tailleMaximaleDesMessages;
+uint8_t taille_maximale_des_messages_attendus;
+char message_recu[32];
+bool relais_1_actif = false;
+bool relais_2_actif = false;
+bool relais_3_actif = false;
+bool relais_4_actif = false;
 
 
 // ========================
@@ -113,7 +118,7 @@ void setup() {
     utilitaireDeTestRelais();
 
     // Détermine la taille du plus grand message
-    tailleMaximaleDesMessages = retourneTailleDuPlusGrandMessage();
+    taille_maximale_des_messages_attendus = retourneTailleDuPlusGrandMessage();
 
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
@@ -122,7 +127,7 @@ void setup() {
     }
 
     // Paramétrage de la librairie RF24
-    module_nrf24.setPayloadSize(tailleMaximaleDesMessages);                             // Nombre de caractères à recevoir, au niveau des messages (32 caractères, au maximum)
+    module_nrf24.setPayloadSize(taille_maximale_des_messages_attendus);                 // Nombre de caractères à recevoir, au niveau des messages (32 caractères, au maximum)
     module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
     module_nrf24.setChannel(canal_de_communication_de_base_pour_transmissions_NRF24);   // Fixation du canal de communication de base
     module_nrf24.setDataRate(RF24_1MBPS);                                               // Fixation du débit de transmission à 1 MBPS
@@ -143,6 +148,90 @@ void setup() {
 // Boucle principale
 // =================
 void loop() {
+
+    // Déclaration d'une variable, qui contiendra le numéro de tunnel sur lequel sont reçues des infos
+    uint8_t numero_de_tunnel;
+
+    // On regarde si des messages sont en attente de lecture
+    if (module_nrf24.available(&numero_de_tunnel)) {
+
+        // Ici, on va travailler avec le tunnel 0 (décidé juste au dessus, avec la fonction "openReadingPipe(0, ...)", donc on ne prendre en compte que les données reçues via ce pipe)
+        if(numero_de_tunnel == 0) {
+
+            // On stocke X caractères, dans la variables nommée "message_recu" (X étant le nombre de caractères max à recevoir ; 32 au maximum)
+            module_nrf24.read(&message_recu, taille_maximale_des_messages_attendus);
+
+            // --------------------------------------------------------
+            // On regarde si le message est en rapport avec le relais 1
+            // --------------------------------------------------------
+            if(String(message_recu) == String(message_si_bouton_poussoir_1_appuye)) {
+                if(relais_1_actif) {
+                    // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+                    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);     delay(100);
+                    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(100);
+                    relais_1_actif = false;
+                } else {
+                    // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+                    digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);     delay(100);
+                    digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);      delay(100);
+                    relais_1_actif = true;
+                }
+            }
+
+            // --------------------------------------------------------
+            // On regarde si le message est en rapport avec le relais 2
+            // --------------------------------------------------------
+            if(String(message_recu) == String(message_si_bouton_poussoir_2_appuye)) {
+                if(relais_2_actif) {
+                    // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+                    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
+                    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);      delay(100);
+                    relais_2_actif = false;
+                } else {
+                    // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+                    digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);     delay(100);
+                    digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);      delay(100);
+                    relais_2_actif = true;
+                }
+            }
+
+            // --------------------------------------------------------
+            // On regarde si le message est en rapport avec le relais 3
+            // --------------------------------------------------------
+            if(String(message_recu) == String(message_si_bouton_poussoir_3_appuye)) {
+                if(relais_3_actif) {
+                    // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+                    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
+                    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);      delay(100);
+                    relais_3_actif = false;
+                } else {
+                    // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+                    digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);     delay(100);
+                    digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);      delay(100);
+                    relais_3_actif = true;
+                }
+            }
+
+            // --------------------------------------------------------
+            // On regarde si le message est en rapport avec le relais 4
+            // --------------------------------------------------------
+            if(String(message_recu) == String(message_si_bouton_poussoir_4_appuye)) {
+                if(relais_4_actif) {
+                    // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+                    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
+                    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);      delay(100);
+                    relais_4_actif = false;
+                } else {
+                    // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+                    digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);     delay(100);
+                    digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);      delay(100);
+                    relais_4_actif = true;
+                }
+            }
+
+        }
+
+    }
   
 }
 
@@ -223,22 +312,22 @@ void utilitaireDeTestRelais() {
     digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(900);
 
     // On manoeuvre le relais 2 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieA0_ATmega328P_activation_relais_2, HIGH);        delay(100);
-    digitalWrite(sortieA0_ATmega328P_activation_relais_2, LOW);         delay(900);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_2, LOW);      delay(900);
+    digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);        delay(100);
+    digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);         delay(900);
+    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
+    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);      delay(900);
 
     // On manoeuvre le relais 3 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieA0_ATmega328P_activation_relais_3, HIGH);        delay(100);
-    digitalWrite(sortieA0_ATmega328P_activation_relais_3, LOW);         delay(900);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_3, LOW);      delay(900);
+    digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);        delay(100);
+    digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);         delay(900);
+    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
+    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);      delay(900);
 
     // On manoeuvre le relais 4 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieA0_ATmega328P_activation_relais_4, HIGH);        delay(100);
-    digitalWrite(sortieA0_ATmega328P_activation_relais_4, LOW);         delay(900);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_4, LOW);      delay(900);
+    digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);        delay(100);
+    digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);         delay(900);
+    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
+    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);      delay(900);
 
     // Pause de 2 secondes, avant de "rendre la main"
     delay(2000);

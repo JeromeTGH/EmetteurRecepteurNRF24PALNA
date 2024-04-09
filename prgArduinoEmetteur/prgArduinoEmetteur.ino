@@ -60,7 +60,7 @@
 // Définition du nom du tunnel de communication
 #define nom_de_notre_tunnel_de_communication                            "ERJT1"     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
 
-// Définitions des messages à émettre, suivant quel bouton poussoir est actionné (de 1 à 32 caractères, maximum)
+// Définition des messages à émettre, suivant quel bouton poussoir est actionné (de 1 à 32 caractères, maximum)
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
 const char message_si_bouton_poussoir_2_appuye[] = "Bouton_2_appuye";
 const char message_si_bouton_poussoir_3_appuye[] = "Bouton_3_appuye";
@@ -74,7 +74,7 @@ bool etat_precedent_bouton_poussoir_1;
 bool etat_precedent_bouton_poussoir_2;
 bool etat_precedent_bouton_poussoir_3;
 bool etat_precedent_bouton_poussoir_4;
-uint8_t tailleMaximaleDesMessages;
+uint8_t taille_maximale_des_messages_envoyes;
 
 
 // ========================
@@ -105,7 +105,7 @@ void setup() {
     faireClignoterLedsAuDemarrage();
 
     // Détermine la taille du plus grand message
-    tailleMaximaleDesMessages = retourneTailleDuPlusGrandMessage();
+    taille_maximale_des_messages_envoyes = retourneTailleDuPlusGrandMessage();
 
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
@@ -114,7 +114,7 @@ void setup() {
     }
 
     // Paramétrage de la librairie RF24
-    module_nrf24.setPayloadSize(tailleMaximaleDesMessages);                             // Nombre de caractères à envoyer, au niveau des messages (32 caractères, au maximum)
+    module_nrf24.setPayloadSize(taille_maximale_des_messages_envoyes);                  // Nombre de caractères à envoyer, au niveau des messages (32 caractères, au maximum)
     module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
     module_nrf24.setChannel(canal_de_communication_de_base_pour_transmissions_NRF24);   // Fixation du canal de communication de base
     module_nrf24.setDataRate(RF24_1MBPS);                                               // Fixation du débit de transmission à 1 MBPS
