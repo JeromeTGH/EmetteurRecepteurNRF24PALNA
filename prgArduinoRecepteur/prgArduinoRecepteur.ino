@@ -57,10 +57,10 @@
                                                                                     // Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur arbitraire (à ajuster personnellement, en fait)
 
 // Définition du nom du tunnel de communication
-#define nom_de_notre_tunnel_de_communication                            "ERJT1";    // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
+#define nom_de_notre_tunnel_de_communication                            "ERJT1"     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
 //uint8_t* pointeur_vers_notre_nom_de_tunnel_de_communication = &nom_de_notre_tunnel_de_communication;
 
-// Définitions des messages pouvant être reçus, selon quel bouton poussoir est actionné au niveau de l'émetteur
+// Définitions des messages pouvant être reçus, selon quel bouton poussoir est actionné au niveau de l'émetteur (de 1 à 32 caractères, maximum)
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
 const char message_si_bouton_poussoir_2_appuye[] = "Bouton_2_appuye";
 const char message_si_bouton_poussoir_3_appuye[] = "Bouton_3_appuye";
@@ -68,6 +68,9 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 
 // Instanciation de la librairie RF24
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
+
+// Variables
+uint8_t tailleMaximaleDesMessages;
 
 
 // ========================
@@ -106,6 +109,9 @@ void setup() {
     // Clignotage LED, avant tentative de démarrage module nRF24
     faireClignoterLedAuDemarrage();
 
+    // Détermine la taille du plus grand message
+    tailleMaximaleDesMessages = retourneTailleDuPlusGrandMessage();
+
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
         // En cas d'échec d'initialisation : boucle infinie / suspension du programme
@@ -113,11 +119,11 @@ void setup() {
     }
 
     // Paramétrage de la librairie RF24
-    module_nrf24.setPayloadSize(15);                                                    // Nombre de caractères à envoyer, au niveau des messages (32, au maximum)
+    module_nrf24.setPayloadSize(tailleMaximaleDesMessages);                             // Nombre de caractères à recevoir, au niveau des messages (32 caractères, au maximum)
     module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
     module_nrf24.setChannel(canal_de_communication_de_base_pour_transmissions_NRF24);   // Fixation du canal de communication de base
     module_nrf24.setDataRate(RF24_1MBPS);                                               // Fixation du débit de transmission à 1 MBPS
-    module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour communiquer le plus loin possible)
+    module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour pouvoir communiquer le plus loin possible)
     module_nrf24.openReadingPipe(0, &nom_de_notre_tunnel_de_communication);             // Ouverture du tunnel de transmission en LECTURE, avec le "nom" qu'on lui a donné (via le "pipe 0", par exemple)
     module_nrf24.startListening();                                                      // Activation de l'écoute, car ici c'est le récepteur !
 
@@ -156,4 +162,34 @@ void faireClignoterLedAuDemarrage() {
 
     }
 
+}
+
+
+// ===========================================
+// Fonction : retourneTailleDuPlusGrandMessage
+// ===========================================
+//      Nota : la taille d'un message (payload, en anglais) doit faire entre 1 et 32 caractères
+uint8_t retourneTailleDuPlusGrandMessage() {
+
+    // Variable qui sera retournée
+    uint8_t taille_du_plus_grand_message;
+
+    // Calcul de la taille des différents types de messages possibles
+    uint8_t taille_message_1 = strlen(message_si_bouton_poussoir_1_appuye);
+    uint8_t taille_message_2 = strlen(message_si_bouton_poussoir_2_appuye);
+    uint8_t taille_message_3 = strlen(message_si_bouton_poussoir_3_appuye);
+    uint8_t taille_message_4 = strlen(message_si_bouton_poussoir_4_appuye);
+
+    // Détermination du message le plus long
+    taille_du_plus_grand_message = taille_message_1;
+    if(taille_message_2 > taille_du_plus_grand_message) taille_du_plus_grand_message = taille_message_2;
+    if(taille_message_3 > taille_du_plus_grand_message) taille_du_plus_grand_message = taille_message_3;
+    if(taille_message_4 > taille_du_plus_grand_message) taille_du_plus_grand_message = taille_message_4;
+
+    // Mécanismes de contrôle, et encadrement au besoin
+    if(taille_du_plus_grand_message < 1) taille_du_plus_grand_message = 1;
+    if(taille_du_plus_grand_message > 32) taille_du_plus_grand_message = 32;
+
+    // Retourne la valeur la plus grande
+    return taille_du_plus_grand_message;
 }
