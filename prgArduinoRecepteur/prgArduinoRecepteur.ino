@@ -109,6 +109,9 @@ void setup() {
     // Clignotage LED, avant tentative de démarrage module nRF24
     faireClignoterLedAuDemarrage();
 
+    // Temporaire : utilitaire de test des relais (avec réinitialisation préalable de leur état)
+    utilitaireDeTestRelais();
+
     // Détermine la taille du plus grand message
     tailleMaximaleDesMessages = retourneTailleDuPlusGrandMessage();
 
@@ -192,4 +195,52 @@ uint8_t retourneTailleDuPlusGrandMessage() {
 
     // Retourne la valeur la plus grande
     return taille_du_plus_grand_message;
+}
+
+
+// =================================
+// Fonction : utilitaireDeTestRelais
+// =================================
+//      Actionne les relais, pour faire des tests (les met sur "OFF", plus les active/désactive l'un après l'autre, avec 1 seconde d'écart)
+void utilitaireDeTestRelais() {
+
+    // Pour commencer, on met tous les relais en position "OFF" (en faisant une "impulsion" HIGH puis LOW, sur chaque ligne de commande)
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);
+    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);
+    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);
+    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);
+    delay(100);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);
+    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);
+    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);
+    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
+    delay(900);
+
+    // On manoeuvre le relais 1 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
+    digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);        delay(100);
+    digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);         delay(900);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);     delay(100);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(900);
+
+    // On manoeuvre le relais 2 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
+    digitalWrite(sortieA0_ATmega328P_activation_relais_2, HIGH);        delay(100);
+    digitalWrite(sortieA0_ATmega328P_activation_relais_2, LOW);         delay(900);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_2, LOW);      delay(900);
+
+    // On manoeuvre le relais 3 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
+    digitalWrite(sortieA0_ATmega328P_activation_relais_3, HIGH);        delay(100);
+    digitalWrite(sortieA0_ATmega328P_activation_relais_3, LOW);         delay(900);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_3, LOW);      delay(900);
+
+    // On manoeuvre le relais 4 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
+    digitalWrite(sortieA0_ATmega328P_activation_relais_4, HIGH);        delay(100);
+    digitalWrite(sortieA0_ATmega328P_activation_relais_4, LOW);         delay(900);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_4, LOW);      delay(900);
+
+    // Pause de 2 secondes, avant de "rendre la main"
+    delay(2000);
+
 }
