@@ -100,6 +100,8 @@ void setup() {
     digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);             // Led "batterie faible" éteinte, pour l'instant
     digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
 
+    // Clignotage LEDs, avant tentative de démarrage module nRF24
+    faireClignoterLedsAuDemarrage();
 
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
@@ -117,7 +119,7 @@ void setup() {
     module_nrf24.stopListening();                                                       // Arrêt de l'écoute, car ici c'est l'émetteur, donc on va émettre !
    
     // Petite pause de stabilisation
-    delay(100);
+    delay(300);
 
     // Allumage de la LED "programme démarré", et passage à la boucle LOOP
     digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
@@ -167,11 +169,10 @@ void loop() {
 // =====================================
 // Fonction : estEnfonceCeBoutonPoussoir
 // =====================================
+//      Ici, on lit l'état du bouton poussoir demandé (1 à 4, inclus)
+//      La valeur lue vaut HIGH si le bouton est relâché (dû à la résistance pull-up associée), ou LOW si le bouton est appuyé (car il y a mise à la masse)
+//      On inverse donc ce résultat lu, pour retourner HIGH lorsque ce bouton est enfoncé, et LOW lorsqu'il est relâché
 bool estEnfonceCeBoutonPoussoir(uint8_t numero_de_bouton_poussoir) {
-
-    // Ici, on lit l'état du bouton poussoir demandé (1 à 4, inclus)
-    // La valeur lue vaut HIGH si le bouton est relâché (dû à la résistance pull-up associée), ou LOW si le bouton est appuyé (car il y a mise à la masse)
-    // On inverse donc ce résultat lu, pour retourner HIGH lorsque ce bouton est enfoncé, et LOW lorsqu'il est relâché
 
     if(numero_de_bouton_poussoir == 1)
         return !digitalRead(entreeA1_ATmega328P_lecture_etat_bouton_poussoir_voie_1);
@@ -184,5 +185,28 @@ bool estEnfonceCeBoutonPoussoir(uint8_t numero_de_bouton_poussoir) {
 
     if(numero_de_bouton_poussoir == 4)
         return !digitalRead(entreeA4_ATmega328P_lecture_etat_bouton_poussoir_voie_4);
+
+}
+
+
+// ========================================
+// Fonction : faireClignoterLedsAuDemarrage
+// ========================================
+//      Permet de faire clignoter les leds 3 fois, au démarrage
+void faireClignoterLedsAuDemarrage() {
+
+    for(uint8_t i = 0; i < 3 ; i++) {
+
+        // Allumage des LEDs
+        digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, HIGH);
+        digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
+        delay(100);
+        
+        // Extinntion LEDs
+        digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);
+        digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);
+        delay(100);
+
+    }
 
 }

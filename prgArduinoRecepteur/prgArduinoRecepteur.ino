@@ -103,6 +103,9 @@ void setup() {
     digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
     digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
 
+    // Clignotage LED, avant tentative de démarrage module nRF24
+    faireClignoterLedAuDemarrage();
+
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
         // En cas d'échec d'initialisation : boucle infinie / suspension du programme
@@ -119,7 +122,7 @@ void setup() {
     module_nrf24.startListening();                                                      // Activation de l'écoute, car ici c'est le récepteur !
 
     // Petite pause de stabilisation
-    delay(100);
+    delay(300);
 
     // Allumage de la LED "programme démarré", et passage à la boucle LOOP
     digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
@@ -132,4 +135,25 @@ void setup() {
 // =================
 void loop() {
   
+}
+
+
+// =======================================
+// Fonction : faireClignoterLedAuDemarrage
+// =======================================
+//      Permet de faire clignoter la led "programme démarré" 3 fois, au démarrage
+void faireClignoterLedAuDemarrage() {
+
+    for(uint8_t i = 0; i < 3 ; i++) {
+
+        // Allumage de la LED
+        digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
+        delay(100);
+        
+        // Extinntion LED
+        digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);
+        delay(100);
+
+    }
+
 }
