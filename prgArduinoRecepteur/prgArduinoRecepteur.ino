@@ -8,14 +8,14 @@
                                                                                       | |
                                                                                       \_|
   Fichier :       prgArduinoRecepteur.ino  
-  Description :   Programme permettant de réaliser un récepteur radio, à base de module nRF24 + PA + LNA
+  Description :   Programme permettant de réaliser un récepteur radio, à base de module nRF24+PA+LNA
 
   Licence :       BY-NC-ND 4.0 CC (https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr)
   
   Remarques :     - le microcontrôleur utilisé ici sera un ATmega328P (version DIP)
-                  - la programmation du µC se fera via l'IDE Arduino, en utilisant FTDI comme passerelle
+                  - la programmation du µC se fera via l'IDE Arduino, en utilisant un FTDI comme passerelle
                   - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix fréquences de transmission possibles
-                  - le récepteur dispose de 4 relais, pilotés par les 4 boutons poussoirs de l'émetteur correspondant
+                  - le récepteur dispose de 4 relais, respectivement pilotés par les 4 boutons poussoirs de l'émetteur
 
   Dépôt GitHub :  https://github.com/JeromeTGH/EmetteurRecepteurNRF24PALNA (fichiers sources du projet, émetteur + récepteur)
 

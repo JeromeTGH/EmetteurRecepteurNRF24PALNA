@@ -8,14 +8,14 @@
                                                                                       | |
                                                                                       \_|
   Fichier :       prgArduinoEmetteur.ino  
-  Description :   Programme permettant de réaliser un émetteur radio, à base de module nRF24 + PA + LNA
+  Description :   Programme permettant de réaliser un émetteur radio, à base de module nRF24+PA+LNA
 
   Licence :       BY-NC-ND 4.0 CC (https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr)
   
   Remarques :     - le microcontrôleur utilisé ici sera un ATmega328P (version DIP)
-                  - la programmation du µC se fera via l'IDE Arduino, en utilisant FTDI comme passerelle
+                  - la programmation du µC se fera via l'IDE Arduino, en utilisant un FTDI comme passerelle
                   - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix fréquences de transmission possibles
-                  - l'émetteur dispose de 4 boutons poussoirs, qui piloteront les 4 relais disposés au niveau du récepteur correspondant
+                  - l'émetteur dispose de 4 boutons poussoirs, qui piloteront les 4 relais disposés au niveau du récepteur
 
   Dépôt GitHub :  https://github.com/JeromeTGH/EmetteurRecepteurNRF24PALNA (fichiers sources du projet, émetteur + récepteur)
 
@@ -49,8 +49,8 @@
 #define sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA  10          // Pour piloter la ligne "CSN" du module NRF24L01+PA+LNA
 
 // Définition des valeurs définissant le pont diviseur de tension, donnant une image abaissée de la tension de la batterie alimentant cet émetteur
-#define valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu   4700        // Pont diviseur de tension, permettant d'abaisser la tension de l'accu (batterie),
-#define valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu   10000       // pour que celle-ci ne soit pas trop haute, pour être lue via l'entrée analogique de l'ATmega328P
+#define valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu   47000       // Pont diviseur de tension, permettant d'abaisser la tension de l'accu (batterie),
+#define valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu   100000      // pour que celle-ci ne soit pas trop haute, pour être lue via l'entrée analogique de l'ATmega328P
 
 // Définition du canal de communication "de base" (la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
 #define canal_de_communication_de_base_pour_transmissions_NRF24         79          // Nota 1 : 126 canaux sont disposibles (de 0 à 125, permettant d'échanger de 2,4GHz à 2,525GHz inclus)
@@ -68,13 +68,6 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 
 // Instanciation de la librairie RF24
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
-
-// Variables
-bool etat_precedent_bouton_poussoir_1;
-bool etat_precedent_bouton_poussoir_2;
-bool etat_precedent_bouton_poussoir_3;
-bool etat_precedent_bouton_poussoir_4;
-uint8_t taille_maximale_des_messages_envoyes;
 
 
 // ========================
@@ -105,7 +98,7 @@ void setup() {
     faireClignoterLedsAuDemarrage();
 
     // Détermine la taille du plus grand message
-    taille_maximale_des_messages_envoyes = retourneTailleDuPlusGrandMessage();
+    uint8_t taille_maximale_des_messages_envoyes = retourneTailleDuPlusGrandMessage();
 
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
