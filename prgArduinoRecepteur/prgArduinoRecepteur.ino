@@ -172,8 +172,8 @@ void loop() {
                     relais_1_actif = false;
                 } else {
                     // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
-                    digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);     delay(100);
-                    digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);      delay(100);
+                    digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);        delay(100);
+                    digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);         delay(100);
                     relais_1_actif = true;
                 }
             }
@@ -189,8 +189,8 @@ void loop() {
                     relais_2_actif = false;
                 } else {
                     // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
-                    digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);     delay(100);
-                    digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);      delay(100);
+                    digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);        delay(100);
+                    digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);         delay(100);
                     relais_2_actif = true;
                 }
             }
@@ -206,8 +206,8 @@ void loop() {
                     relais_3_actif = false;
                 } else {
                     // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
-                    digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);     delay(100);
-                    digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);      delay(100);
+                    digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);        delay(100);
+                    digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);         delay(100);
                     relais_3_actif = true;
                 }
             }
@@ -223,8 +223,8 @@ void loop() {
                     relais_4_actif = false;
                 } else {
                     // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
-                    digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);     delay(100);
-                    digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);      delay(100);
+                    digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);        delay(100);
+                    digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);         delay(100);
                     relais_4_actif = true;
                 }
             }
@@ -305,31 +305,31 @@ void utilitaireDeTestRelais() {
     digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
     delay(900);
 
-    // On manoeuvre le relais 1 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);        delay(100);
-    digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);         delay(900);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);     delay(100);
-    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(900);
+    // Puis on met tous les relais en position "ON" (impulsion de 100 ms)
+    digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);
+    digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);
+    digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);
+    digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);
+    delay(100);
+    digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);
+    digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);
+    digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);
+    digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);
+    delay(900);
 
-    // On manoeuvre le relais 2 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);        delay(100);
-    digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);         delay(900);
-    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
-    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);      delay(900);
+    // Et enfin, on remet les relais en position "OFF"
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);
+    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);
+    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);
+    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);
+    delay(100);
+    digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);
+    digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);
+    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);
+    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
+    delay(900);
 
-    // On manoeuvre le relais 3 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);        delay(100);
-    digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);         delay(900);
-    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
-    digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);      delay(900);
-
-    // On manoeuvre le relais 4 (une "impulsion" sur la ligne d'activation, puis 1 seconde plus tard, une impulsion sur la ligne de désactivation)
-    digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);        delay(100);
-    digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);         delay(900);
-    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
-    digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);      delay(900);
-
-    // Pause de 2 secondes, avant de "rendre la main"
-    delay(2000);
+    // Pause d'une seconde supplémentaire, avant de "rendre la main"
+    delay(1000);
 
 }
