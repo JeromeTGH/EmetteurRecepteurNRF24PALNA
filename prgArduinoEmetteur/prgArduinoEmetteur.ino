@@ -97,8 +97,9 @@ void setup() {
     // Clignotage LEDs, avant tentative de démarrage module nRF24
     faireClignoterLedsAuDemarrage();
 
-    // Détermine la taille du plus grand message
+    // Détermine la taille du plus grand message et la valeur du canal de communication à utiliser
     uint8_t taille_maximale_des_messages_envoyes = retourneTailleDuPlusGrandMessage();
+    uint8_t valeur_du_canal_de_communication = canal_de_communication_de_base_pour_transmissions_NRF24 + retourneValeurDuCanalChoisi();
 
     // Initialisation du module nRF24L01
     if (!module_nrf24.begin()) {
@@ -109,7 +110,7 @@ void setup() {
     // Paramétrage de la librairie RF24
     module_nrf24.setPayloadSize(taille_maximale_des_messages_envoyes);                  // Nombre de caractères à envoyer, au niveau des messages (32 caractères, au maximum)
     module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
-    module_nrf24.setChannel(canal_de_communication_de_base_pour_transmissions_NRF24);   // Fixation du canal de communication de base
+    module_nrf24.setChannel(valeur_du_canal_de_communication);                          // Fixation du canal de transmission, pour l'émetteur
     module_nrf24.setDataRate(RF24_250KBPS);                                             // Fixation du débit de transmission à 250 kBPS (kilo-bits par seconde), pour aller "le plus loin possible"
     module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour pouvoir communiquer le plus loin possible)
     module_nrf24.openWritingPipe(&nom_de_notre_tunnel_de_communication);                // Ouverture du tunnel de transmission en ÉCRITURE, avec le "nom" qu'on lui a donné (via le "pipe 0", obligatoirement en émission)
@@ -236,4 +237,32 @@ uint8_t retourneTailleDuPlusGrandMessage() {
 
     // Retourne la valeur la plus grande
     return taille_du_plus_grand_message;
+}
+
+
+// ======================================
+// Fonction : retourneValeurDuCanalChoisi
+// ======================================
+//      Nota : l'encodeur rotatif permettant de sélectionner un canal va de 0 à 9 (ce qui "s'ajoutera" à la fréquence de base choisie) ;
+//             cette valeur est lue au format binaire, avec poids associés (1, 2, 4, ou 8, selon la ligne lue)
+uint8_t retourneValeurDuCanalChoisi() {
+
+    // Variable qui sera retournée
+    uint8_t valeur_du_canal_choisi;
+
+    // Lecture des 4 entrées de l'encodeur rotatif
+    uint8_t valeur_ligne_1 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_1_encodeur_10_positions);
+    uint8_t valeur_ligne_2 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions);
+    uint8_t valeur_ligne_4 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions);
+    uint8_t valeur_ligne_8 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions);
+
+    // Détermination de la valeur décimale
+    valeur_du_canal_choisi = 0;
+    if(valeur_ligne_1 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 1;
+    if(valeur_ligne_2 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 2;
+    if(valeur_ligne_4 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 4;
+    if(valeur_ligne_8 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 8;
+
+    // Retourne la valeur décimale correspondant au canal choisi, sur l'encodeur
+    return valeur_du_canal_choisi;
 }
