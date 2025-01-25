@@ -58,7 +58,8 @@
                                                                                     // Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur arbitraire (à ajuster personnellement, en fait)
 
 // Définition du nom du tunnel de communication
-#define nom_de_notre_tunnel_de_communication                            "ERJT1"     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
+const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
+
 
 // Définition des messages à émettre, suivant quel bouton poussoir est actionné (de 1 à 32 caractères, maximum)
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
@@ -74,6 +75,9 @@ RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, 
 // Initialisation programme
 // ========================
 void setup() {
+
+    Serial.begin(9600);
+    Serial.println(F("Accès série ouvert."));
 
     // Configuration des entrées de l'ATmega328P, gérées "manuellement"
     pinMode(entreeA0_ATmega328P_lecture_tension_batterie, INPUT);
@@ -97,8 +101,7 @@ void setup() {
     // Clignotage LEDs, avant tentative de démarrage module nRF24
     faireClignoterLedsAuDemarrage();
 
-    // Détermine la taille du plus grand message et la valeur du canal de communication à utiliser
-    uint8_t taille_maximale_des_messages_envoyes = retourneTailleDuPlusGrandMessage();
+    // Détermine le canal de communication à utiliser
     uint8_t valeur_du_canal_de_communication = canal_de_communication_de_base_pour_transmissions_NRF24 + retourneValeurDuCanalChoisi();
 
     // Initialisation du module nRF24L01
@@ -108,12 +111,11 @@ void setup() {
     }
 
     // Paramétrage de la librairie RF24
-    module_nrf24.setPayloadSize(taille_maximale_des_messages_envoyes);                  // Nombre de caractères à envoyer, au niveau des messages (32 caractères, au maximum)
     module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
     module_nrf24.setChannel(valeur_du_canal_de_communication);                          // Fixation du canal de transmission, pour l'émetteur
-    module_nrf24.setDataRate(RF24_250KBPS);                                             // Fixation du débit de transmission à 250 kBPS (kilo-bits par seconde), pour aller "le plus loin possible"
+    //module_nrf24.setDataRate(RF24_250KBPS);                                             // Fixation du débit de transmission à 250 kBPS (kilo-bits par seconde), pour aller "le plus loin possible"
+    module_nrf24.openWritingPipe(nom_de_notre_tunnel_de_communication);                 // Ouverture du tunnel de transmission en ÉCRITURE, avec le "nom" qu'on lui a donné (via le "pipe 0", obligatoirement en émission)
     module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour pouvoir communiquer le plus loin possible)
-    module_nrf24.openWritingPipe(&nom_de_notre_tunnel_de_communication);                // Ouverture du tunnel de transmission en ÉCRITURE, avec le "nom" qu'on lui a donné (via le "pipe 0", obligatoirement en émission)
     module_nrf24.stopListening();                                                       // Arrêt de l'écoute, car ici c'est l'émetteur, donc on va émettre !
 
     // Petite pause de stabilisation
@@ -121,6 +123,8 @@ void setup() {
 
     // Allumage de la LED "programme démarré", et passage à la boucle LOOP
     digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
+    Serial.println(F("Programme démarré."));
+    Serial.println("");
 
 }
 
@@ -135,6 +139,7 @@ void loop() {
         while(estEnfonceCeBoutonPoussoir(1)) {delay(10);}                                                           // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
         module_nrf24.write(&message_si_bouton_poussoir_1_appuye, sizeof(message_si_bouton_poussoir_1_appuye));      // Envoi du message correspondant
         delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+        envoieMessageSurPortSerie(message_si_bouton_poussoir_1_appuye);
     }
 
     // Traitement du bouton 2
@@ -142,6 +147,7 @@ void loop() {
         while(estEnfonceCeBoutonPoussoir(2)) {delay(10);}                                                           // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
         module_nrf24.write(&message_si_bouton_poussoir_2_appuye, sizeof(message_si_bouton_poussoir_2_appuye));      // Envoi du message correspondant
         delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+        envoieMessageSurPortSerie(message_si_bouton_poussoir_2_appuye);
     }
 
     // Traitement du bouton 3
@@ -149,17 +155,19 @@ void loop() {
         while(estEnfonceCeBoutonPoussoir(3)) {delay(10);}                                                           // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
         module_nrf24.write(&message_si_bouton_poussoir_3_appuye, sizeof(message_si_bouton_poussoir_3_appuye));      // Envoi du message correspondant
         delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+        envoieMessageSurPortSerie(message_si_bouton_poussoir_3_appuye);
     }
 
     // Traitement du bouton 4
-    if(estEnfonceCeBoutonPoussoir(3)) {
-        while(estEnfonceCeBoutonPoussoir(3)) {delay(10);}                                                           // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+    if(estEnfonceCeBoutonPoussoir(4)) {
+        while(estEnfonceCeBoutonPoussoir(4)) {delay(10);}                                                           // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
         module_nrf24.write(&message_si_bouton_poussoir_4_appuye, sizeof(message_si_bouton_poussoir_4_appuye));      // Envoi du message correspondant
         delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
+        envoieMessageSurPortSerie(message_si_bouton_poussoir_4_appuye);
     }
 
     // Petite pause, avant de reboucler
-    delay(100);
+    delay(50);
 
 }
 
@@ -193,12 +201,12 @@ bool estEnfonceCeBoutonPoussoir(uint8_t numero_de_bouton_poussoir) {
 //      Permet de faire clignoter les leds 3 fois, au démarrage
 void faireClignoterLedsAuDemarrage() {
 
-    for(uint8_t i = 0; i < 3 ; i++) {
+    for(uint8_t i = 0; i < 5 ; i++) {
 
         // Allumage des LEDs
         digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, HIGH);
         digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
-        delay(100);
+        delay(50);
         
         // Extinntion LEDs
         digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);
@@ -207,36 +215,6 @@ void faireClignoterLedsAuDemarrage() {
 
     }
 
-}
-
-
-// ===========================================
-// Fonction : retourneTailleDuPlusGrandMessage
-// ===========================================
-//      Nota : la taille d'un message (payload, en anglais) doit faire entre 1 et 32 caractères
-uint8_t retourneTailleDuPlusGrandMessage() {
-
-    // Variable qui sera retournée
-    uint8_t taille_du_plus_grand_message;
-
-    // Calcul de la taille des différents types de messages possibles
-    uint8_t taille_message_1 = strlen(message_si_bouton_poussoir_1_appuye);
-    uint8_t taille_message_2 = strlen(message_si_bouton_poussoir_2_appuye);
-    uint8_t taille_message_3 = strlen(message_si_bouton_poussoir_3_appuye);
-    uint8_t taille_message_4 = strlen(message_si_bouton_poussoir_4_appuye);
-
-    // Détermination du message le plus long
-    taille_du_plus_grand_message = taille_message_1;
-    if(taille_message_2 > taille_du_plus_grand_message) taille_du_plus_grand_message = taille_message_2;
-    if(taille_message_3 > taille_du_plus_grand_message) taille_du_plus_grand_message = taille_message_3;
-    if(taille_message_4 > taille_du_plus_grand_message) taille_du_plus_grand_message = taille_message_4;
-
-    // Mécanismes de contrôle, et encadrement au besoin
-    if(taille_du_plus_grand_message < 1) taille_du_plus_grand_message = 1;
-    if(taille_du_plus_grand_message > 32) taille_du_plus_grand_message = 32;
-
-    // Retourne la valeur la plus grande
-    return taille_du_plus_grand_message;
 }
 
 
@@ -252,17 +230,28 @@ uint8_t retourneValeurDuCanalChoisi() {
 
     // Lecture des 4 entrées de l'encodeur rotatif
     uint8_t valeur_ligne_1 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_1_encodeur_10_positions);
-    uint8_t valeur_ligne_2 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions);
-    uint8_t valeur_ligne_4 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions);
-    uint8_t valeur_ligne_8 = digitalRead(entreeD2_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions);
+    uint8_t valeur_ligne_2 = digitalRead(entreeD3_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions);
+    uint8_t valeur_ligne_4 = digitalRead(entreeD4_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions);
+    uint8_t valeur_ligne_8 = digitalRead(entreeD5_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions);
 
     // Détermination de la valeur décimale
     valeur_du_canal_choisi = 0;
-    if(valeur_ligne_1 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 1;
-    if(valeur_ligne_2 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 2;
-    if(valeur_ligne_4 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 4;
-    if(valeur_ligne_8 === HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 8;
+    if(valeur_ligne_1 == HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 1;
+    if(valeur_ligne_2 == HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 2;
+    if(valeur_ligne_4 == HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 4;
+    if(valeur_ligne_8 == HIGH) valeur_du_canal_choisi = valeur_du_canal_choisi + 8;
 
     // Retourne la valeur décimale correspondant au canal choisi, sur l'encodeur
     return valeur_du_canal_choisi;
+}
+
+// ======================================
+// Fonction : retourneValeurDuCanalChoisi
+// ======================================
+//      Nota : l'encodeur rotatif permettant de sélectionner un canal va de 0 à 9 (ce qui "s'ajoutera" à la fréquence de base choisie) ;
+//             cette valeur est lue au format binaire, avec poids associés (1, 2, 4, ou 8, selon la ligne lue)
+void envoieMessageSurPortSerie(char msg[]) {
+    Serial.print(F("Message \""));
+    Serial.print(msg);
+    Serial.println(F("\" envoyé !"));
 }
