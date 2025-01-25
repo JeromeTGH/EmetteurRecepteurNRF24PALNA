@@ -131,9 +131,9 @@ void setup() {
     // Paramétrage de la librairie RF24
     module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
     module_nrf24.setChannel(valeur_du_canal_de_communication);                          // Fixation du canal de transmission, pour le récepteur
-    //module_nrf24.setDataRate(RF24_250KBPS);                                             // Fixation du débit de transmission à 250 kBPS (kilo-bits par seconde), pour aller "le plus loin possible"
+    //module_nrf24.setDataRate(RF24_250KBPS);                                           // Vitesse de communication RF24_250KBPS, RF24_1MBPS, ou RF24_2MBPS ("transmettre moins vite permet d'aller plus loin")
     module_nrf24.openReadingPipe(0, nom_de_notre_tunnel_de_communication);              // Ouverture du tunnel de transmission en LECTURE, avec le "nom" qu'on lui a donné (via le "pipe 0", par exemple)
-    module_nrf24.setPALevel(RF24_PA_MAX);                                               // Fixation du niveau de transmission au max (pour pouvoir communiquer le plus loin possible)
+    module_nrf24.setPALevel(RF24_PA_MAX);                                               // Niveau RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, ou RF24_PA_MAX (mise au max, pour pouvoir communiquer le plus loin possible)
     module_nrf24.startListening();                                                      // Activation de l'écoute, car ici c'est le récepteur !
 
     // Petite pause de stabilisation
