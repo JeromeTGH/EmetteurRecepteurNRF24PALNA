@@ -24,8 +24,9 @@
 
 */
 
-// Inclusion de la librairie nRF24 (auteur : https://github.com/nRF24/RF24)
-#include <RF24.h>
+// Inclusion des librairies nécessaires
+#include <RF24.h>                                     // Librairie nRF24 (auteur : https://github.com/nRF24/RF24)
+#include <avr/sleep.h>                                // Pour le "sleep mode", en cas de batterie trop faible
 
 // *************************************************************************************************************************************
 // Partie débogage, au besoin
@@ -82,6 +83,8 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 // Instanciation de la librairie RF24
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
 
+// Variables
+float tensionAccusEstimee;
 
 // ========================
 // Initialisation programme
@@ -114,6 +117,9 @@ void setup() {
 
   // Clignotage LEDs, avant tentative de démarrage module nRF24
   faireClignoterLedsAuDemarrage();
+
+  // Estime la tension de la batterie (accus lipo 3S, pour rappel, ici)
+  verifieSiTensionAccusSuffisante(true);            // "true" permet d'afficher cette valeur au démarrage du programme, pour info
 
   // Détermine le canal de communication à utiliser
   uint8_t valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
@@ -192,6 +198,9 @@ void loop() {
     envoieMessageSurPortSerie(message_si_bouton_poussoir_4_appuye);
   }
 
+  // Vérifie la tension des accus, et arrête le programme en conséquence (en allumant au passage la LED "Batterie faible")
+  verifieSiTensionAccusSuffisante(false);
+  
   // Petite pause, avant de reboucler
   delay(50);
 
@@ -280,4 +289,64 @@ void envoieMessageSurPortSerie(char msg[]) {
   DEBUGMSG(F("Message \""));
   DEBUGMSG(msg);
   DEBUGMSG(F("\" envoyé !\r\n"));
+}
+
+// ==============================
+// Fonction : calculeTensionAccus
+// ==============================
+//      Nota : la tension des accus passe physiquement au travers d'un diviseur (abaisseur) de tension,
+//             avant d'entrer sur l'entrée A0 de l'ATmega328P ; il faudra donc faire un calcul inverse,
+//             pour retrouver/estimer la tension de l'accu, à partir de la tension lue sur A0
+void calculeTensionAccus() {
+  int valeur_10_bits_mesuree_sur_entree_A0 = analogRead(entreeA0_ATmega328P_lecture_tension_batterie);    // Valeur pouvant aller de 0 à 1024, donc
+  float tension_estimee_sur_A0_en_volts = float(valeur_10_bits_mesuree_sur_entree_A0) / 1024.0 * 5.0;     // En idéalisant, la tension de référence de l'ATMEGA328P = 5 volts, tout pile !
+  
+  // D'après la formule du pont diviseur de tension,
+  //   V(sortie) = Rinférieure / (Rinf + Rsup) * V(entrée)
+  //   d'où V(A0) = R4 / (R3+R4) * V(accus)
+  //   d'où V(accus) = V(A0) * (R3+R4) / R4
+  // La valeur de V(accus) sera logé dans la variable globale "tensionAccusEstimee"
+
+  float valeurDeR3enKohms = valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu / 1000.0;
+  float valeurDeR4enKohms = valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu / 1000.0;
+  
+  tensionAccusEstimee = tension_estimee_sur_A0_en_volts * (valeurDeR3enKohms + valeurDeR4enKohms) / valeurDeR4enKohms;
+}
+
+
+
+// ==========================================
+// Fonction : verifieSiTensionAccusSuffisante
+// ==========================================
+//    Nota 1 : si la tension est inférieure à un certain seuil, on éteint l'émission radio et la LED prog démarré, puis on allume la led "Batterie faible"
+//    Nota 2 : le paramètre "bAffichage" sert à afficher la valeur de la tension courante sur le moniteur série, si souhaité
+void verifieSiTensionAccusSuffisante(boolean bAffichage) {
+  calculeTensionAccus();
+
+  // Affichage de la tension lue, si souhaité
+  if(bAffichage) {
+    DEBUGMSG(F("Tension estimée des accus = "));
+    DEBUGMSG(tensionAccusEstimee);
+    DEBUGMSG(F(" volts\r\n"));
+  }
+
+  // Teste si tension batterie inférieur à 9 volts (soit 3V par accu, au niveau de la batterie LiPo)
+  if(tensionAccusEstimee < 9.0) {
+    DEBUGMSG(F("Tension des accus trop faible ("));
+    DEBUGMSG(tensionAccusEstimee);
+    DEBUGMSG(F(" V)\r\n"));
+
+    DEBUGMSG(F("  → Extinction LED \"programme démarré\"\r\n"));
+    digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);
+
+    DEBUGMSG(F("  → Allumage LED \"batterie faible\"\r\n"));
+    digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, HIGH);
+
+    DEBUGMSG(F("  → Arrêt du programme\r\n"));
+    delay(200);
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sleep_enable();
+    sleep_mode();
+  }
+  
 }
