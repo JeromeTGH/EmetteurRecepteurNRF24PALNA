@@ -80,12 +80,13 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 // Instanciation de la librairie RF24
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
 
-// Variables
+// Variables globales
 char message_recu[32];
 bool relais_1_actif = false;
 bool relais_2_actif = false;
 bool relais_3_actif = false;
 bool relais_4_actif = false;
+uint8_t precedente_valeur_du_canal_choisi_sur_PCB;
 
 
 // ========================
@@ -132,13 +133,18 @@ void setup() {
   // Temporaire : utilitaire de test des relais (avec réinitialisation préalable de leur état)
   utilitaireDeTestRelais();
 
-  // Détermine le canal de communication à utiliser
-  uint8_t valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
+  // Détermine le canal de communication à utiliser (avec initialisation de la "valeur précédente", pour démarrer)
+  precedente_valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
   DEBUGMSG(F("Canal sélectionné sur PCB = "));
-  DEBUGMSG(valeur_du_canal_choisi_sur_PCB);
+  DEBUGMSG(precedente_valeur_du_canal_choisi_sur_PCB);
   DEBUGMSG(F(" (de 0 à 9)\r\n"));
-  uint8_t valeur_du_canal_de_communication_reel = canal_de_communication_de_base_pour_transmissions_NRF24 + valeur_du_canal_choisi_sur_PCB;
-
+  uint8_t valeur_du_canal_de_communication_reel = canal_de_communication_de_base_pour_transmissions_NRF24 + precedente_valeur_du_canal_choisi_sur_PCB;
+  DEBUGMSG(F("Canal de transmission \"réel\" = "));
+  DEBUGMSG(valeur_du_canal_de_communication_reel);
+  DEBUGMSG(F(" (fréq= "));
+  DEBUGMSG(2400 + valeur_du_canal_de_communication_reel);     // Le canal 0 correspondant à une fréquence de 2,4 GHz (soit 2400 MHz)
+  DEBUGMSG(F(" MHz)\r\n"));
+  
   // Initialisation du module nRF24L01
   if (!module_nrf24.begin()) {
     // En cas d'échec d'initialisation : boucle infinie / suspension du programme
@@ -188,13 +194,13 @@ void loop() {
         if (relais_1_actif) {
           // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);     delay(100);
-          digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(100);
+          digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(10);
           relais_1_actif = false;
           DEBUGMSG(F("Relais 1 désactivé\r\n"));
         } else {
           // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);        delay(100);
-          digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);         delay(100);
+          digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);         delay(10);
           relais_1_actif = true;
           DEBUGMSG(F("Relais 1 activé\r\n"));
         }
@@ -207,13 +213,13 @@ void loop() {
         if (relais_2_actif) {
           // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
-          digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);      delay(100);
+          digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);      delay(10);
           relais_2_actif = false;
           DEBUGMSG(F("Relais 2 désactivé\r\n"));
         } else {
           // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);        delay(100);
-          digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);         delay(100);
+          digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);         delay(10);
           relais_2_actif = true;
           DEBUGMSG(F("Relais 2 activé\r\n"));
         }
@@ -226,13 +232,13 @@ void loop() {
         if (relais_3_actif) {
           // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
-          digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);      delay(100);
+          digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);      delay(10);
           relais_3_actif = false;
           DEBUGMSG(F("Relais 3 désactivé\r\n"));
         } else {
           // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);        delay(100);
-          digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);         delay(100);
+          digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);         delay(10);
           relais_3_actif = true;
           DEBUGMSG(F("Relais 3 activé\r\n"));
         }
@@ -245,19 +251,40 @@ void loop() {
         if (relais_4_actif) {
           // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
-          digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);      delay(100);
+          digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);      delay(10);
           relais_4_actif = false;
           DEBUGMSG(F("Relais 4 désactivé\r\n"));
         } else {
           // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);        delay(100);
-          digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);         delay(100);
+          digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);         delay(10);
           relais_4_actif = true;
           DEBUGMSG(F("Relais 4 activé\r\n"));
         }
       }
     }
   }
+
+  // Vérifie si le canal n'a pas été changé, en cours de route
+  uint8_t valeur_de_canal_relue = retourneValeurDuCanalChoisi();
+  if(valeur_de_canal_relue != precedente_valeur_du_canal_choisi_sur_PCB) {
+    delay(150);                                                     // Anti-rebond
+    valeur_de_canal_relue = retourneValeurDuCanalChoisi();          // puis relecture pour être sûr, après ce petit délai
+    uint8_t valeur_du_nouveau_canal = canal_de_communication_de_base_pour_transmissions_NRF24 + valeur_de_canal_relue;
+    module_nrf24.setChannel(valeur_du_nouveau_canal);
+    precedente_valeur_du_canal_choisi_sur_PCB = valeur_de_canal_relue;
+    DEBUGMSG(F("\r\n"));
+    DEBUGMSG(F("Nouveau canal sélectionné sur PCB = "));
+    DEBUGMSG(valeur_de_canal_relue);
+    DEBUGMSG(F(" (de 0 à 9)\r\n"));
+    DEBUGMSG(F("Nouveau canal de transmission \"réel\" = "));
+    DEBUGMSG(valeur_du_nouveau_canal);
+    DEBUGMSG(F(" (fréq= "));
+    DEBUGMSG(2400 + valeur_du_nouveau_canal);       // Le canal 0 correspondant à 2400 MHz, pour rappel
+    DEBUGMSG(F(" MHz)\r\n"));
+    DEBUGMSG(F("\r\n"));
+  }
+  
 }
 
 
@@ -332,8 +359,7 @@ void utilitaireDeTestRelais() {
 // ======================================
 // Fonction : retourneValeurDuCanalChoisi
 // ======================================
-//      Nota : l'encodeur rotatif permettant de sélectionner un canal va de 0 à 9 (ce qui "s'ajoutera" à la fréquence de base choisie) ;
-//             cette valeur est lue au format binaire, avec poids associés (1, 2, 4, ou 8, selon la ligne lue)
+//      Nota : renvoi la valeur (pouvant aller de 0 à 9) de l'encodeur rotatif, soudé sur le PCB
 uint8_t retourneValeurDuCanalChoisi() {
 
   // Variable qui sera retournée

@@ -83,8 +83,9 @@ const char message_si_bouton_poussoir_4_appuye[] = "Bouton_4_appuye";
 // Instanciation de la librairie RF24
 RF24 module_nrf24(sortieD9_ATmega328P_vers_entree_CE_du_module_NRF24L01_PA_LNA, sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA);
 
-// Variables
-float tensionAccusEstimee;
+// Variables globales
+float tension_accus_estimee;
+uint8_t precedente_valeur_du_canal_choisi_sur_PCB;
 
 // ========================
 // Initialisation programme
@@ -121,12 +122,17 @@ void setup() {
   // Estime la tension de la batterie (accus lipo 3S, pour rappel, ici)
   verifieSiTensionAccusSuffisante(true);            // "true" permet d'afficher cette valeur au démarrage du programme, pour info
 
-  // Détermine le canal de communication à utiliser
-  uint8_t valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
+  // Détermine le canal de communication à utiliser (avec initialisation de la "valeur précédente", pour démarrer)
+  precedente_valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
   DEBUGMSG(F("Canal sélectionné sur PCB = "));
-  DEBUGMSG(valeur_du_canal_choisi_sur_PCB);
+  DEBUGMSG(precedente_valeur_du_canal_choisi_sur_PCB);
   DEBUGMSG(F(" (de 0 à 9)\r\n"));
-  uint8_t valeur_du_canal_de_communication_reel = canal_de_communication_de_base_pour_transmissions_NRF24 + valeur_du_canal_choisi_sur_PCB;
+  uint8_t valeur_du_canal_de_communication_reel = canal_de_communication_de_base_pour_transmissions_NRF24 + precedente_valeur_du_canal_choisi_sur_PCB;
+  DEBUGMSG(F("Canal de transmission \"réel\" = "));
+  DEBUGMSG(valeur_du_canal_de_communication_reel);
+  DEBUGMSG(F(" (fréq= "));
+  DEBUGMSG(2400 + valeur_du_canal_de_communication_reel);     // Le canal 0 correspondant à une fréquence de 2,4 GHz (soit 2400 MHz)
+  DEBUGMSG(F(" MHz)\r\n"));
 
   // Initialisation du module nRF24L01
   if (!module_nrf24.begin()) {
@@ -164,8 +170,8 @@ void loop() {
       delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_1_appuye, sizeof(message_si_bouton_poussoir_1_appuye));      // Envoi du message correspondant
-    delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
-    envoieMessageSurPortSerie(message_si_bouton_poussoir_1_appuye);
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_1_appuye);
   }
 
   // Traitement du bouton 2
@@ -174,8 +180,8 @@ void loop() {
       delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_2_appuye, sizeof(message_si_bouton_poussoir_2_appuye));      // Envoi du message correspondant
-    delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
-    envoieMessageSurPortSerie(message_si_bouton_poussoir_2_appuye);
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_2_appuye);
   }
 
   // Traitement du bouton 3
@@ -184,8 +190,8 @@ void loop() {
       delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_3_appuye, sizeof(message_si_bouton_poussoir_3_appuye));      // Envoi du message correspondant
-    delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
-    envoieMessageSurPortSerie(message_si_bouton_poussoir_3_appuye);
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_3_appuye);
   }
 
   // Traitement du bouton 4
@@ -194,12 +200,32 @@ void loop() {
       delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_4_appuye, sizeof(message_si_bouton_poussoir_4_appuye));      // Envoi du message correspondant
-    delay(20);                                                                                                  // Petit "anti-rebond logiciel" (20 ms de durée)
-    envoieMessageSurPortSerie(message_si_bouton_poussoir_4_appuye);
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_4_appuye);
   }
 
   // Vérifie la tension des accus, et arrête le programme en conséquence (en allumant au passage la LED "Batterie faible")
   verifieSiTensionAccusSuffisante(false);
+
+  // Vérifie si le canal n'a pas été changé, en cours de route
+  uint8_t valeur_de_canal_relue = retourneValeurDuCanalChoisi();
+  if(valeur_de_canal_relue != precedente_valeur_du_canal_choisi_sur_PCB) {
+    delay(150);                                                     // Anti-rebond
+    valeur_de_canal_relue = retourneValeurDuCanalChoisi();          // puis relecture pour être sûr, après ce petit délai
+    uint8_t valeur_du_nouveau_canal = canal_de_communication_de_base_pour_transmissions_NRF24 + valeur_de_canal_relue;
+    module_nrf24.setChannel(valeur_du_nouveau_canal);
+    precedente_valeur_du_canal_choisi_sur_PCB = valeur_de_canal_relue;
+    DEBUGMSG(F("\r\n"));
+    DEBUGMSG(F("Nouveau canal sélectionné sur PCB = "));
+    DEBUGMSG(valeur_de_canal_relue);
+    DEBUGMSG(F(" (de 0 à 9)\r\n"));
+    DEBUGMSG(F("Nouveau canal de transmission \"réel\" = "));
+    DEBUGMSG(valeur_du_nouveau_canal);
+    DEBUGMSG(F(" (fréq= "));
+    DEBUGMSG(2400 + valeur_du_nouveau_canal);       // Le canal 0 correspondant à 2400 MHz, pour rappel
+    DEBUGMSG(F(" MHz)\r\n"));
+    DEBUGMSG(F("\r\n"));
+  }
   
   // Petite pause, avant de reboucler
   delay(50);
@@ -256,8 +282,7 @@ void faireClignoterLedsAuDemarrage() {
 // ======================================
 // Fonction : retourneValeurDuCanalChoisi
 // ======================================
-//      Nota : l'encodeur rotatif permettant de sélectionner un canal va de 0 à 9 (ce qui "s'ajoutera" à la fréquence de base choisie) ;
-//             cette valeur est lue au format binaire, avec poids associés (1, 2, 4, ou 8, selon la ligne lue)
+//      Nota : renvoi la valeur (pouvant aller de 0 à 9) de l'encodeur rotatif, soudé sur le PCB
 uint8_t retourneValeurDuCanalChoisi() {
 
   // Variable qui sera retournée
@@ -280,12 +305,11 @@ uint8_t retourneValeurDuCanalChoisi() {
   return valeur_du_canal_choisi;
 }
 
-// ======================================
-// Fonction : retourneValeurDuCanalChoisi
-// ======================================
-//      Nota : l'encodeur rotatif permettant de sélectionner un canal va de 0 à 9 (ce qui "s'ajoutera" à la fréquence de base choisie) ;
-//             cette valeur est lue au format binaire, avec poids associés (1, 2, 4, ou 8, selon la ligne lue)
-void envoieMessageSurPortSerie(char msg[]) {
+// ==========================================
+// Fonction : ecrireMessageEnvoyeSurPortSerie
+// ==========================================
+//      Nota : permet d'envoyer un message formaté, sur le port série
+void ecrireMessageEnvoyeSurPortSerie(char msg[]) {
   DEBUGMSG(F("Message \""));
   DEBUGMSG(msg);
   DEBUGMSG(F("\" envoyé !\r\n"));
@@ -305,12 +329,12 @@ void calculeTensionAccus() {
   //   V(sortie) = Rinférieure / (Rinf + Rsup) * V(entrée)
   //   d'où V(A0) = R4 / (R3+R4) * V(accus)
   //   d'où V(accus) = V(A0) * (R3+R4) / R4
-  // La valeur de V(accus) sera logé dans la variable globale "tensionAccusEstimee"
+  // La valeur de V(accus) sera logé dans la variable globale "tension_accus_estimee"
 
   float valeurDeR3enKohms = valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu / 1000.0;
   float valeurDeR4enKohms = valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu / 1000.0;
   
-  tensionAccusEstimee = tension_estimee_sur_A0_en_volts * (valeurDeR3enKohms + valeurDeR4enKohms) / valeurDeR4enKohms;
+  tension_accus_estimee = tension_estimee_sur_A0_en_volts * (valeurDeR3enKohms + valeurDeR4enKohms) / valeurDeR4enKohms;
 }
 
 
@@ -326,14 +350,14 @@ void verifieSiTensionAccusSuffisante(boolean bAffichage) {
   // Affichage de la tension lue, si souhaité
   if(bAffichage) {
     DEBUGMSG(F("Tension estimée des accus = "));
-    DEBUGMSG(tensionAccusEstimee);
+    DEBUGMSG(tension_accus_estimee);
     DEBUGMSG(F(" volts\r\n"));
   }
 
   // Teste si tension batterie inférieur à 9 volts (soit 3V par accu, au niveau de la batterie LiPo)
-  if(tensionAccusEstimee < 9.0) {
+  if(tension_accus_estimee < 9.0) {
     DEBUGMSG(F("Tension des accus trop faible ("));
-    DEBUGMSG(tensionAccusEstimee);
+    DEBUGMSG(tension_accus_estimee);
     DEBUGMSG(F(" V)\r\n"));
 
     DEBUGMSG(F("  → Extinction LED \"programme démarré\"\r\n"));
