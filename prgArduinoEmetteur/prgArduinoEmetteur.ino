@@ -14,7 +14,7 @@
 
   Remarques :     - le microcontrôleur utilisé ici sera un ATmega328P (version DIP)
                   - la programmation du µC se fera via l'IDE Arduino, en utilisant un FTDI comme passerelle
-                  - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix canaux de transmission possibles
+                  - un sélecteur rotatif à 10 positions permettra de choisir l'un des dix canaux de transmission possibles
                   - l'émetteur dispose de 4 boutons poussoirs, qui piloteront les 4 relais disposés au niveau du récepteur
 
   Dépôt GitHub :  https://github.com/JeromeTGH/EmetteurRecepteurNRF24PALNA (fichiers sources du projet, émetteur + récepteur)
@@ -66,15 +66,15 @@
 #define valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu   100000      // pour que celle-ci ne soit pas trop haute, pour être lue via l'entrée analogique de l'ATmega328P
 
 // Définition du canal de communication "de base" (définissant la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
-#define canal_de_communication_de_base_pour_transmissions_NRF24         79          // Nota 1 : 126 canaux sont disposibles (de 0 à 125, permettant d'échanger de 2,4GHz à 2,525GHz inclus)
-// Nota 1 : les modules nRF24 peuvent émettre sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125
+#define canal_de_communication_de_base_pour_transmissions_NRF24         79
+// Nota 1 : les modules nRF24 peuvent recevoir sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125 (fréquence de 2,4oo GHz à 2,525 GHz, en fait)
 // Nota 2 : la valeur à mettre ici doit être inférieure ou égale à 116 ici, du fait qu'on peut rajouter jusqu'à 9 "crans", sur le sélecteur à 10 positions soudé sur PCB
 // Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur totalement arbitraire (à ajuster comme bon nous semble, du moment qu'on est entre 0 et 116 inclus)
 
 // Définition du nom du tunnel de communication
-const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, du côté récepteur)
+const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devant être identique au côté récepteur)
 
-// Définition des messages à émettre, suivant quel bouton poussoir est actionné (de 1 à 32 caractères, maximum)
+// Définition des messages à émettre (de 1 à 32 caractères maximum), suivant quel bouton-poussoir est actionné
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
 const char message_si_bouton_poussoir_2_appuye[] = "Bouton_2_appuye";
 const char message_si_bouton_poussoir_3_appuye[] = "Bouton_3_appuye";
@@ -287,7 +287,8 @@ void faireClignoterLedsAuDemarrage() {
 // ======================================
 // Fonction : retourneValeurDuCanalChoisi
 // ======================================
-//      Nota : renvoi la valeur (pouvant aller de 0 à 9 inclus) de l'encodeur rotatif, soudé sur le PCB
+//      Nota 1 : renvoi la valeur (pouvant aller de 0 à 9 inclus) de l'encodeur rotatif, soudé sur le PCB
+//      Nota 2 : ici, en lisant les lignes tout-ou-rien de l'encodeur, on fait en fait une conversion binaire/décimal, pour retrouver sa valeur
 uint8_t retourneValeurDuCanalChoisi() {
 
   // Variable qui sera retournée

@@ -14,7 +14,7 @@
 
   Remarques :     - le microcontrôleur utilisé ici sera un ATmega328P (version DIP)
                   - la programmation du µC se fera via l'IDE Arduino, en utilisant un FTDI comme passerelle
-                  - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix canaux de transmission possibles
+                  - un sélecteur rotatif à 10 positions permettra de choisir l'un des dix canaux de transmission possibles
                   - le récepteur dispose de 4 relais, respectivement pilotés par les 4 boutons poussoirs de l'émetteur
 
   Dépôt GitHub :  https://github.com/JeromeTGH/EmetteurRecepteurNRF24PALNA (fichiers sources du projet, émetteur + récepteur)
@@ -64,15 +64,15 @@
 
 
 // Définition du canal de communication "de base" (définissant la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
-#define canal_de_communication_de_base_pour_transmissions_NRF24         79          // Nota 1 : 126 canaux sont disposibles (de 0 à 125, permettant d'échanger de 2,4GHz à 2,525GHz inclus)
-// Nota 1 : les modules nRF24 peuvent recevoir sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125
+#define canal_de_communication_de_base_pour_transmissions_NRF24         79
+// Nota 1 : les modules nRF24 peuvent recevoir sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125 (fréquence de 2,4oo GHz à 2,525 GHz, en fait)
 // Nota 2 : la valeur à mettre ici doit être inférieure ou égale à 116 ici, du fait qu'on peut rajouter jusqu'à 9 "crans", sur le sélecteur à 10 positions soudé sur PCB
 // Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur totalement arbitraire (à ajuster comme bon nous semble, du moment qu'on est entre 0 et 116 inclus)
 
 // Définition du nom du tunnel de communication
-const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, du côté émetteur)
+const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devant être identique au côté émetteur)
 
-// Définition des messages attendus, selon quel bouton poussoir est actionné au niveau de l'émetteur (de 1 à 32 caractères, maximum)
+// Définition des messages attendus (de 1 à 32 caractères maximum), selon quel bouton-poussoir est actionné au niveau de l'émetteur
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
 const char message_si_bouton_poussoir_2_appuye[] = "Bouton_2_appuye";
 const char message_si_bouton_poussoir_3_appuye[] = "Bouton_3_appuye";
@@ -102,7 +102,7 @@ void setup() {
 
   // Configuration des entrées de l'ATmega328P, gérées "manuellement"
   pinMode(entreeD2_ATmega328P_lecture_etat_ligne_1_encodeur_10_positions, INPUT_PULLUP);      // Activation des pull-up au niveau des lignes de l'encodeur à 10 positions
-  pinMode(entreeD3_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions, INPUT_PULLUP);      //    (ici : 1=ligne inactive / 0=ligne active)
+  pinMode(entreeD3_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions, INPUT_PULLUP);      //    (du coup : ligne inactive → HIGH / ligne active → LOW)
   pinMode(entreeD4_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions, INPUT_PULLUP);
   pinMode(entreeD5_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions, INPUT_PULLUP);
 
@@ -118,9 +118,9 @@ void setup() {
   pinMode(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, OUTPUT);
 
   // Définition des états initiaux des lignes de sorties
-  digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);                                 // Désalimentation de toutes les bobines de relais
+  digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);                                 // "Désalimentation" de toutes les bobines de relais
   digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);                              //      → cela se fait via le driver ULN2803
-  digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);                                 //      → ici, 0=bobine désalimentée / 1=bobine alimentée
+  digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);                                 //      → ici, 0=bobine "désalimentée" / 1=bobine alimentée
   digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);
   digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);
   digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);
@@ -131,8 +131,8 @@ void setup() {
   // Test de la LED "programme démarré" (clignotements rapides), pour que l'utilisateur puisse vérifier qu'elle fonctionne bien
   faireClignoterLedAuDemarrage();
 
-  // Temporaire : utilitaire de test des relais (avec réinitialisation préalable de leur état)
-  utilitaireDeTestRelais();
+  // Test des relais (avec réinitialisation préalable de leur état), pour que l'utilisateur puisse vérifier qu'ils fonctionnent bien
+  testerLesRelais();
 
   // Détermine le canal de communication à utiliser (avec initialisation de la "valeur précédente", pour démarrer)
   precedente_valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
@@ -151,10 +151,7 @@ void setup() {
     // En cas d'échec d'initialisation : arrêt du programme
     DEBUGMSG(F("\r\n"));
     DEBUGMSG(F("Initialisation du module nRF24 impossible. Arrêt du programme.)\r\n"));
-    delay(300);
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    sleep_enable();
-    sleep_mode();
+    while(1) {}
   }
 
   // Paramétrage de la librairie RF24
@@ -168,7 +165,7 @@ void setup() {
   // Petite pause de stabilisation
   delay(300);
 
-  // Allumage de la LED "programme démarré", et passage à la boucle LOOP
+  // Allumage de la LED "programme démarré", puis passage à la boucle LOOP !
   digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
   DEBUGMSG(F("Programme démarré.\r\n"));
   DEBUGMSG(F("\r\n"));
@@ -187,24 +184,29 @@ void loop() {
   // On regarde si des messages sont en attente de lecture
   if (module_nrf24.available(&numero_de_tunnel)) {
 
-    // Ici, on va travailler avec le tunnel 0 (décidé juste au dessus, avec la fonction "openReadingPipe(0, ...)", donc on ne prendre en compte que les données reçues via ce pipe)
+    // Ici, on va travailler avec le tunnel 0, comme décidé plus haut, lors de l'appel de la fonction "openReadingPipe(0, ...)" ;
+    // donc on ne va prendre en compte que les données reçues via ce pipe
     if (numero_de_tunnel == 0) {
 
-      // On stocke X caractères, dans la variables nommée "message_recu" (X étant le nombre de caractères max à recevoir ; 32 au maximum)
+      // On stocke les caractères reçus dans la variable "message_recu" (32 caractères au maximum, pour rappel)
       module_nrf24.read(&message_recu, sizeof(message_recu));
+
+      // Remarque : ci-dessous, par abus de langage, je dirai que tel ou tel relais sera "actif" lorsque ses contacts seront en position travail,
+      //            et "inactif" lorsque ses contacts seront en position repos (j'ai trouvé cela plus clair que de dire que les contacts étaient
+      //            en position 1 ou en position 2, au niveau de ces relais bistables, après excitation de leurs bobines !)
 
       // --------------------------------------------------------
       // On regarde si le message est en rapport avec le relais 1
       // --------------------------------------------------------
       if (String(message_recu) == String(message_si_bouton_poussoir_1_appuye)) {
         if (relais_1_actif) {
-          // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+          // Si le relais est actif, alors on le désactive (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);     delay(100);
           digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, LOW);      delay(10);
           relais_1_actif = false;
           DEBUGMSG(F("Relais 1 désactivé\r\n"));
         } else {
-          // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+          // Si le relais est inactif, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);        delay(100);
           digitalWrite(sortieA0_ATmega328P_activation_relais_1, LOW);         delay(10);
           relais_1_actif = true;
@@ -217,13 +219,13 @@ void loop() {
       // --------------------------------------------------------
       if (String(message_recu) == String(message_si_bouton_poussoir_2_appuye)) {
         if (relais_2_actif) {
-          // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+          // Si le relais est actif, alors on le désactive (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);     delay(100);
           digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, LOW);      delay(10);
           relais_2_actif = false;
           DEBUGMSG(F("Relais 2 désactivé\r\n"));
         } else {
-          // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+          // Si le relais est inactif, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);        delay(100);
           digitalWrite(sortieA2_ATmega328P_activation_relais_2, LOW);         delay(10);
           relais_2_actif = true;
@@ -236,13 +238,13 @@ void loop() {
       // --------------------------------------------------------
       if (String(message_recu) == String(message_si_bouton_poussoir_3_appuye)) {
         if (relais_3_actif) {
-          // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+          // Si le relais est actif, alors on le désactive (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);     delay(100);
           digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);      delay(10);
           relais_3_actif = false;
           DEBUGMSG(F("Relais 3 désactivé\r\n"));
         } else {
-          // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+          // Si le relais est inactif, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);        delay(100);
           digitalWrite(sortieA4_ATmega328P_activation_relais_3, LOW);         delay(10);
           relais_3_actif = true;
@@ -255,13 +257,13 @@ void loop() {
       // --------------------------------------------------------
       if (String(message_recu) == String(message_si_bouton_poussoir_4_appuye)) {
         if (relais_4_actif) {
-          // Si le relais est actif, alors on le relâche (impulsion sur sa "ligne de désactivation")
+          // Si le relais est actif, alors on le désactive (impulsion sur sa "ligne de désactivation")
           digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, HIGH);     delay(100);
           digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);      delay(10);
           relais_4_actif = false;
           DEBUGMSG(F("Relais 4 désactivé\r\n"));
         } else {
-          // Si le relais est relâché, alors on l'active (impulsion sur sa "ligne d'activation")
+          // Si le relais est inactif, alors on l'active (impulsion sur sa "ligne d'activation")
           digitalWrite(sortieD6_ATmega328P_activation_relais_4, HIGH);        delay(100);
           digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);         delay(10);
           relais_4_actif = true;
@@ -315,15 +317,20 @@ void faireClignoterLedAuDemarrage() {
 }
 
 
-// =================================
-// Fonction : utilitaireDeTestRelais
-// =================================
-//      Actionne les relais, pour faire des tests (les met sur "OFF", plus les active/désactive l'un après l'autre, avec 1 seconde d'écart)
-void utilitaireDeTestRelais() {
+// ==========================
+// Fonction : testerLesRelais
+// ==========================
+//      Actionne les relais, pour faire des tests ; ceci en 3 étapes :
+//          → on désactive tout d'abord tous les relais (comme ce sont des relais bistables, leur précédent état est conservé,
+//            même en cas de coupure d'alimentation ; il faut donc les "ré-initialiser au repos")
+//          → puis on active tous les relais (ce qui nous permet de vérifier toutes les LEDs associées à ces relais)
+//          → puis on re-désactive tous les relais (afin de fournir un état au repos des contacts, avant démarrage programme via LOOP)
+void testerLesRelais() {
 
   DEBUGMSG(F("Test des relais...\r\n"));
 
-  // Pour commencer, on met tous les relais en position "OFF" (en faisant une "impulsion" HIGH puis LOW, sur chaque ligne de commande)
+  // Pour commencer, on désactive tous les relais (en faisant une "impulsion" HIGH puis LOW, sur chaque ligne de commande)
+  // Ainsi, si un relais avait conservé un état précédent la mise sous tension, on le remet en position connue / par défaut
   digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);
   digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);
   digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);
@@ -335,7 +342,7 @@ void utilitaireDeTestRelais() {
   digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
   delay(900);
 
-  // Puis on met tous les relais en position "ON" (impulsion de 100 ms)
+  // Puis on met active tous les relais(impulsion de 100 ms)
   digitalWrite(sortieA0_ATmega328P_activation_relais_1, HIGH);
   digitalWrite(sortieA2_ATmega328P_activation_relais_2, HIGH);
   digitalWrite(sortieA4_ATmega328P_activation_relais_3, HIGH);
@@ -347,7 +354,7 @@ void utilitaireDeTestRelais() {
   digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);
   delay(900);
 
-  // Et enfin, on remet les relais en position "OFF"
+  // Et enfin, on re-désactive tous les relais
   digitalWrite(sortieA1_ATmega328P_desactivation_relais_1, HIGH);
   digitalWrite(sortieA3_ATmega328P_desactivation_relais_2, HIGH);
   digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, HIGH);
@@ -365,7 +372,8 @@ void utilitaireDeTestRelais() {
 // ======================================
 // Fonction : retourneValeurDuCanalChoisi
 // ======================================
-//      Nota : renvoi la valeur (pouvant aller de 0 à 9 inclus) de l'encodeur rotatif, soudé sur le PCB
+//      Nota 1 : renvoi la valeur (pouvant aller de 0 à 9 inclus) de l'encodeur rotatif, soudé sur le PCB
+//      Nota 2 : ici, en lisant les lignes tout-ou-rien de l'encodeur, on fait en fait une conversion binaire/décimal, pour retrouver sa valeur
 uint8_t retourneValeurDuCanalChoisi() {
 
   // Variable qui sera retournée
