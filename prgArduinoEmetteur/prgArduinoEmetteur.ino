@@ -14,7 +14,7 @@
 
   Remarques :     - le microcontrôleur utilisé ici sera un ATmega328P (version DIP)
                   - la programmation du µC se fera via l'IDE Arduino, en utilisant un FTDI comme passerelle
-                  - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix fréquences de transmission possibles
+                  - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix canaux de transmission possibles
                   - l'émetteur dispose de 4 boutons poussoirs, qui piloteront les 4 relais disposés au niveau du récepteur
 
   Dépôt GitHub :  https://github.com/JeromeTGH/EmetteurRecepteurNRF24PALNA (fichiers sources du projet, émetteur + récepteur)
@@ -28,23 +28,23 @@
 #include <RF24.h>                                     // Librairie nRF24 (auteur : https://github.com/nRF24/RF24)
 #include <avr/sleep.h>                                // Pour le "sleep mode", en cas de batterie trop faible
 
-// *************************************************************************************************************************************
+// ************************************************************************************************************************************
 // Partie débogage, au besoin
-#define DEBUG 1                                       // Mettre à 0 ou à 1 pour afficher ou non les messages en retour sur le port série
+#define DEBUG 1                                       // Mettre à 0 ou à 1 pour afficher ou non les messages de debug sur le port série
 
 #if DEBUG
   #define DEBUGMSG(message) Serial.print(message)     // Pour info, ajouter \r\n à la fin du message, pour un retour à la ligne
 #else
   #define DEBUGMSG(message)
 #endif
-// *************************************************************************************************************************************
+// ************************************************************************************************************************************
 
 
 // Définition des broches de raccordement à l'ATmega328P
-//      Remarque 1 : hors lignes UART (TX/RX) et SPI (MISO/MOSI/SCK)
-//      Remarque 2 : les broches A0/A1/A2/A3/A4 de ce programme arduino correspondent respectivement aux broches physiques 23/24/25/26/27 de la puce ATmega328P
-//      Remarque 3 : les broches D2/D3/D4/D5/D6/D7/D9/D10 de ce programme arduino correspondent respectivement aux broches physiques 4/5/6/11/12/13/15/16 de l'ATmega328P
-#define entreeA0_ATmega328P_lecture_tension_batterie                    A0          // Pour lire la tension (abaissée) de la batterie alimentant le projet
+//      Remarque 1 : hors lignes UART (RX/TX) et SPI (MISO/MOSI/SCK)
+//      Remarque 2 : pour info, les broches A0/A1/A2/A3/A4 de ce programme arduino correspondent respectivement aux broches physiques 23/24/25/26/27 de la puce ATmega328P
+//      Remarque 3 : pour info, les broches D2/D3/D4/D5/D6/D7/D9/D10 de ce programme arduino correspondent respectivement aux broches physiques 4/5/6/11/12/13/15/16 de l'ATmega328P
+#define entreeA0_ATmega328P_lecture_tension_batterie                    A0          // Pour lire la tension (abaissée) de la batterie alimentant ce projet
 #define entreeA1_ATmega328P_lecture_etat_bouton_poussoir_voie_1         A1          // Pour lire l'état du bouton-poussoir de la voie 1 (0=appuyé / 1=relâché)
 #define entreeA2_ATmega328P_lecture_etat_bouton_poussoir_voie_2         A2          // Pour lire l'état du bouton-poussoir de la voie 2 (0=appuyé / 1=relâché)
 #define entreeA3_ATmega328P_lecture_etat_bouton_poussoir_voie_3         A3          // Pour lire l'état du bouton-poussoir de la voie 3 (0=appuyé / 1=relâché)
@@ -62,17 +62,17 @@
 #define sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA  10          // Pour piloter la ligne "CSN" du module NRF24L01+PA+LNA
 
 // Définition des valeurs définissant le pont diviseur de tension, donnant une image abaissée de la tension de la batterie alimentant cet émetteur
-#define valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu   47000       // Pont diviseur de tension, permettant d'abaisser la tension de l'accu (batterie),
+#define valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu   47000       // Pont diviseur de tension, permettant d'abaisser la tension de l'accu (batterie LiPo 3S),
 #define valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu   100000      // pour que celle-ci ne soit pas trop haute, pour être lue via l'entrée analogique de l'ATmega328P
 
-// Définition du canal de communication "de base" (la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
+// Définition du canal de communication "de base" (définissant la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
 #define canal_de_communication_de_base_pour_transmissions_NRF24         79          // Nota 1 : 126 canaux sont disposibles (de 0 à 125, permettant d'échanger de 2,4GHz à 2,525GHz inclus)
-// Nota 2 : la valeur à mettre ici doit être comprise entre 0 et 116, puisqu'on pourra ajouter entre 0 et 9 "crans" (via le sélecteur à 10 positions)
-// Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur arbitraire (à ajuster personnellement, en fait)
+// Nota 1 : les modules nRF24 peuvent émettre sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125
+// Nota 2 : la valeur à mettre ici doit être inférieure ou égale à 116 ici, du fait qu'on peut rajouter jusqu'à 9 "crans", sur le sélecteur à 10 positions soudé sur PCB
+// Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur totalement arbitraire (à ajuster comme bon nous semble, du moment qu'on est entre 0 et 116 inclus)
 
 // Définition du nom du tunnel de communication
-const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
-
+const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, du côté récepteur)
 
 // Définition des messages à émettre, suivant quel bouton poussoir est actionné (de 1 à 32 caractères, maximum)
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
@@ -100,11 +100,11 @@ void setup() {
   // Configuration des entrées de l'ATmega328P, gérées "manuellement"
   pinMode(entreeA0_ATmega328P_lecture_tension_batterie, INPUT);
   pinMode(entreeA1_ATmega328P_lecture_etat_bouton_poussoir_voie_1, INPUT_PULLUP);             // Activation des pull-up au niveau des boutons poussoirs
-  pinMode(entreeA2_ATmega328P_lecture_etat_bouton_poussoir_voie_2, INPUT_PULLUP);             //    (ici : 1=bouton relâché / 0=bouton appuyé)
+  pinMode(entreeA2_ATmega328P_lecture_etat_bouton_poussoir_voie_2, INPUT_PULLUP);             //    (dans ce cas : bouton relâché = 1 / bouton appuyé = 0)
   pinMode(entreeA3_ATmega328P_lecture_etat_bouton_poussoir_voie_3, INPUT_PULLUP);
   pinMode(entreeA4_ATmega328P_lecture_etat_bouton_poussoir_voie_4, INPUT_PULLUP);
   pinMode(entreeD2_ATmega328P_lecture_etat_ligne_1_encodeur_10_positions, INPUT_PULLUP);      // Activation des pull-up au niveau des lignes de l'encodeur à 10 positions
-  pinMode(entreeD3_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions, INPUT_PULLUP);      //    (ici : 1=ligne inactive / 0=ligne active)
+  pinMode(entreeD3_ATmega328P_lecture_etat_ligne_2_encodeur_10_positions, INPUT_PULLUP);      //    (dans ce cas : ligne inactive = 1 / ligne active = 0)
   pinMode(entreeD4_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions, INPUT_PULLUP);
   pinMode(entreeD5_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions, INPUT_PULLUP);
 
@@ -113,14 +113,14 @@ void setup() {
   pinMode(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, OUTPUT);
 
   // Définition des états initiaux des lignes de sorties
-  digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);             // Led "batterie faible" éteinte, pour l'instant
-  digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
+  digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);             // Led "batterie faible" éteinte, pour commencer
+  digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour commencer
 
-  // Clignotage LEDs, avant tentative de démarrage module nRF24
+  // Test des LEDs (clignotements rapides), pour que l'utilisateur puisse vérifier qu'elles fonctionnent bien
   faireClignoterLedsAuDemarrage();
 
-  // Estime la tension de la batterie (accus lipo 3S, pour rappel, ici)
-  verifieSiTensionAccusSuffisante(true);            // "true" permet d'afficher cette valeur au démarrage du programme, pour info
+  // Estimation de la tension batterie (accus lipo 3S, dans mon cas)
+  verifieSiTensionAccusSuffisante(true);            // la valeur "true" permet simplement d'afficher la" tension batterie" au démarrage du programme, sur le moniteur série
 
   // Détermine le canal de communication à utiliser (avec initialisation de la "valeur précédente", pour démarrer)
   precedente_valeur_du_canal_choisi_sur_PCB = retourneValeurDuCanalChoisi();
@@ -131,22 +131,27 @@ void setup() {
   DEBUGMSG(F("Canal de transmission \"réel\" = "));
   DEBUGMSG(valeur_du_canal_de_communication_reel);
   DEBUGMSG(F(" (fréq= "));
-  DEBUGMSG(2400 + valeur_du_canal_de_communication_reel);     // Le canal 0 correspondant à une fréquence de 2,4 GHz (soit 2400 MHz)
+  DEBUGMSG(2400 + valeur_du_canal_de_communication_reel);     // Le canal 0 correspondant à une fréquence de 2,4 GHz (soit 2400 MHz), pour rappel
   DEBUGMSG(F(" MHz)\r\n"));
 
   // Initialisation du module nRF24L01
   if (!module_nrf24.begin()) {
-    // En cas d'échec d'initialisation : boucle infinie / suspension du programme
-    while (1) {}
+    // En cas d'échec d'initialisation : arrêt du programme
+    DEBUGMSG(F("\r\n"));
+    DEBUGMSG(F("Initialisation du module nRF24 impossible. Arrêt du programme.)\r\n"));
+    delay(300);
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sleep_enable();
+    sleep_mode();
   }
 
   // Paramétrage de la librairie RF24
-  module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
-  module_nrf24.setChannel(valeur_du_canal_de_communication_reel);                     // Fixation du canal de transmission, pour l'émetteur
-  module_nrf24.setDataRate(RF24_250KBPS);                                             // Vitesse de communication RF24_250KBPS, RF24_1MBPS, ou RF24_2MBPS ("transmettre moins vite permet d'aller plus loin")
-  module_nrf24.openWritingPipe(nom_de_notre_tunnel_de_communication);                 // Ouverture du tunnel de transmission en ÉCRITURE, avec le "nom" qu'on lui a donné (via le "pipe 0", obligatoirement en émission)
-  module_nrf24.setPALevel(RF24_PA_MAX);                                               // Niveau RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, ou RF24_PA_MAX (mise au max, pour pouvoir communiquer le plus loin possible)
-  module_nrf24.stopListening();                                                       // Arrêt de l'écoute, car ici c'est l'émetteur, donc on va émettre !
+  module_nrf24.setAddressWidth(5);                                          // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
+  module_nrf24.setChannel(valeur_du_canal_de_communication_reel);           // Fixation du canal de transmission, pour l'émetteur
+  module_nrf24.setDataRate(RF24_250KBPS);                                   // Vitesse de communication RF24_250KBPS, RF24_1MBPS, ou RF24_2MBPS (en sachant que "transmettre moins vite permet d'aller plus loin")
+  module_nrf24.openWritingPipe(nom_de_notre_tunnel_de_communication);       // Ouverture du tunnel de transmission en ÉCRITURE, avec le "nom" qu'on lui a donné (se fait via le "pipe 0", obligatoirement en émission)
+  module_nrf24.setPALevel(RF24_PA_MAX);                                     // Niveau RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, ou RF24_PA_MAX (mis au max, pour pouvoir communiquer le plus loin possible)
+  module_nrf24.stopListening();                                             // Arrêt de l'écoute, car ici c'est l'émetteur, donc on va émettre !
 
   // Petite pause de stabilisation
   delay(300);
@@ -167,51 +172,51 @@ void loop() {
   // Traitement du bouton 1
   if (estEnfonceCeBoutonPoussoir(1)) {
     while (estEnfonceCeBoutonPoussoir(1)) {
-      delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+      delay(10);    // On attend le relâchement du bouton (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_1_appuye, sizeof(message_si_bouton_poussoir_1_appuye));      // Envoi du message correspondant
-    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 ms de durée)
     ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_1_appuye);
   }
 
   // Traitement du bouton 2
   if (estEnfonceCeBoutonPoussoir(2)) {
     while (estEnfonceCeBoutonPoussoir(2)) {
-      delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+      delay(10);    // On attend le relâchement du bouton (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_2_appuye, sizeof(message_si_bouton_poussoir_2_appuye));      // Envoi du message correspondant
-    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 ms de durée)
     ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_2_appuye);
   }
 
   // Traitement du bouton 3
   if (estEnfonceCeBoutonPoussoir(3)) {
     while (estEnfonceCeBoutonPoussoir(3)) {
-      delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+      delay(10);    // On attend le relâchement du bouton (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_3_appuye, sizeof(message_si_bouton_poussoir_3_appuye));      // Envoi du message correspondant
-    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 ms de durée)
     ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_3_appuye);
   }
 
   // Traitement du bouton 4
   if (estEnfonceCeBoutonPoussoir(4)) {
     while (estEnfonceCeBoutonPoussoir(4)) {
-      delay(10); // Attente que le bouton soit relâché (avec délai de rafraîchissement de 10 ms)
+      delay(10);    // On attend le relâchement du bouton (avec délai de rafraîchissement de 10 ms)
     }
     module_nrf24.write(&message_si_bouton_poussoir_4_appuye, sizeof(message_si_bouton_poussoir_4_appuye));      // Envoi du message correspondant
-    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 à 20 ms de durée)
+    delay(10);                                                                                                  // Petit "anti-rebond logiciel" (10 ms de durée)
     ecrireMessageEnvoyeSurPortSerie(message_si_bouton_poussoir_4_appuye);
   }
 
-  // Vérifie la tension des accus, et arrête le programme en conséquence (en allumant au passage la LED "Batterie faible")
+  // Vérification de la tension des accus, et arrêt du programme si besoin (en allumant au passage la LED "Batterie faible")
   verifieSiTensionAccusSuffisante(false);
 
-  // Vérifie si le canal n'a pas été changé, en cours de route
+  // Vérification si changement manuel de canal, sur le PCB
   uint8_t valeur_de_canal_relue = retourneValeurDuCanalChoisi();
   if(valeur_de_canal_relue != precedente_valeur_du_canal_choisi_sur_PCB) {
-    delay(150);                                                     // Anti-rebond
-    valeur_de_canal_relue = retourneValeurDuCanalChoisi();          // puis relecture pour être sûr, après ce petit délai
+    delay(150);                                                     // Anti-rebond, pour filtrer les éventuels états indésirables,
+    valeur_de_canal_relue = retourneValeurDuCanalChoisi();          // puis relecture de la valeur après coup
     uint8_t valeur_du_nouveau_canal = canal_de_communication_de_base_pour_transmissions_NRF24 + valeur_de_canal_relue;
     module_nrf24.setChannel(valeur_du_nouveau_canal);
     precedente_valeur_du_canal_choisi_sur_PCB = valeur_de_canal_relue;
@@ -236,9 +241,9 @@ void loop() {
 // =====================================
 // Fonction : estEnfonceCeBoutonPoussoir
 // =====================================
-//      Ici, on lit l'état du bouton poussoir demandé (1 à 4, inclus)
-//      La valeur lue vaut HIGH si le bouton est relâché (dû à la résistance pull-up associée), ou LOW si le bouton est appuyé (car il y a mise à la masse)
-//      On inverse donc ce résultat lu, pour retourner HIGH lorsque ce bouton est enfoncé, et LOW lorsqu'il est relâché
+//      Ici, on lit l'état du bouton poussoir demandé (n° 1 à 4).
+//      La valeur lue vaut HIGH/TRUE si le bouton est relâché (dû à la résistance pull-up associée), ou LOW/FALSE si le bouton est appuyé (car il y a mise à la masse).
+//      On inverse donc ce résultat lu, pour retourner TRUE lorsque ce bouton est enfoncé, et FALSE lorsqu'il est relâché !
 bool estEnfonceCeBoutonPoussoir(uint8_t numero_de_bouton_poussoir) {
 
   if (numero_de_bouton_poussoir == 1)
@@ -270,7 +275,7 @@ void faireClignoterLedsAuDemarrage() {
     digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
     delay(50);
 
-    // Extinntion LEDs
+    // Extinction LEDs
     digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, LOW);
     digitalWrite(sortieD7_ATmega328P_pilotage_led_indication_programme_demarre, LOW);
     delay(100);
@@ -282,7 +287,7 @@ void faireClignoterLedsAuDemarrage() {
 // ======================================
 // Fonction : retourneValeurDuCanalChoisi
 // ======================================
-//      Nota : renvoi la valeur (pouvant aller de 0 à 9) de l'encodeur rotatif, soudé sur le PCB
+//      Nota : renvoi la valeur (pouvant aller de 0 à 9 inclus) de l'encodeur rotatif, soudé sur le PCB
 uint8_t retourneValeurDuCanalChoisi() {
 
   // Variable qui sera retournée
@@ -294,14 +299,14 @@ uint8_t retourneValeurDuCanalChoisi() {
   uint8_t valeur_ligne_4 = digitalRead(entreeD4_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions);
   uint8_t valeur_ligne_8 = digitalRead(entreeD5_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions);
 
-  // Détermination de la valeur décimale
+  // Détermination de la valeur décimale correspondante
   valeur_du_canal_choisi = 0;
   if (valeur_ligne_1 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 1;
   if (valeur_ligne_2 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 2;
   if (valeur_ligne_4 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 4;
   if (valeur_ligne_8 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 8;
 
-  // Retourne la valeur décimale correspondant au canal choisi, sur l'encodeur
+  // Retourne la valeur décimale correspondant au canal choisi sur l'encodeur
   return valeur_du_canal_choisi;
 }
 
@@ -322,8 +327,8 @@ void ecrireMessageEnvoyeSurPortSerie(char msg[]) {
 //             avant d'entrer sur l'entrée A0 de l'ATmega328P ; il faudra donc faire un calcul inverse,
 //             pour retrouver/estimer la tension de l'accu, à partir de la tension lue sur A0
 void calculeTensionAccus() {
-  int valeur_10_bits_mesuree_sur_entree_A0 = analogRead(entreeA0_ATmega328P_lecture_tension_batterie);    // Valeur pouvant aller de 0 à 1024, donc
-  float tension_estimee_sur_A0_en_volts = float(valeur_10_bits_mesuree_sur_entree_A0) / 1024.0 * 5.0;     // En idéalisant, la tension de référence de l'ATMEGA328P = 5 volts, tout pile !
+  int valeur_10_bits_mesuree_sur_entree_A0 = analogRead(entreeA0_ATmega328P_lecture_tension_batterie);    // Valeur pouvant aller de 0 à 1024 (10 bits), donc
+  float tension_estimee_sur_A0_en_volts = float(valeur_10_bits_mesuree_sur_entree_A0) / 1024.0 * 5.0;     // En idéalisant, la tension de référence de l'ATMEGA328P vaut 5 volts, tout pile !
   
   // D'après la formule du pont diviseur de tension,
   //   V(sortie) = Rinférieure / (Rinf + Rsup) * V(entrée)
@@ -334,6 +339,8 @@ void calculeTensionAccus() {
   float valeurDeR3enKohms = valeur_en_ohms_resistance_haute_pont_diviseur_de_tension_accu / 1000.0;
   float valeurDeR4enKohms = valeur_en_ohms_resistance_basse_pont_diviseur_de_tension_accu / 1000.0;
   
+  // Remarque : par habitude, j'ai passé les valeurs de résistances en kilo-ohms pour éviter des nombres trop grands
+  //            (résultants de calculs intermédiaires), qui pourraient être "tronqués" (overflow) au niveau de l'ATmega328P
   tension_accus_estimee = tension_estimee_sur_A0_en_volts * (valeurDeR3enKohms + valeurDeR4enKohms) / valeurDeR4enKohms;
 }
 
@@ -342,8 +349,8 @@ void calculeTensionAccus() {
 // ==========================================
 // Fonction : verifieSiTensionAccusSuffisante
 // ==========================================
-//    Nota 1 : si la tension est inférieure à un certain seuil, on éteint l'émission radio et la LED prog démarré, puis on allume la led "Batterie faible"
-//    Nota 2 : le paramètre "bAffichage" sert à afficher la valeur de la tension courante sur le moniteur série, si souhaité
+//    Nota 1 : si la tension est inférieure à un certain seuil, on éteint la LED "Programme démarré", puis on allume la led "Batterie faible"
+//    Nota 2 : le paramètre "bAffichage" sert à afficher ou non la valeur de la tension courante sur le moniteur série, lorsque souhaité
 void verifieSiTensionAccusSuffisante(boolean bAffichage) {
   calculeTensionAccus();
 
@@ -354,7 +361,7 @@ void verifieSiTensionAccusSuffisante(boolean bAffichage) {
     DEBUGMSG(F(" volts\r\n"));
   }
 
-  // Teste si tension batterie inférieur à 9 volts (soit 3V par accu, au niveau de la batterie LiPo)
+  // Test si tension batterie inférieure à 9 volts (soit 3V par accu, au niveau de la batterie LiPo 3S)
   if(tension_accus_estimee < 9.0) {
     DEBUGMSG(F("Tension des accus trop faible ("));
     DEBUGMSG(tension_accus_estimee);
@@ -367,7 +374,7 @@ void verifieSiTensionAccusSuffisante(boolean bAffichage) {
     digitalWrite(sortieD6_ATmega328P_pilotage_led_indication_batterie_faible, HIGH);
 
     DEBUGMSG(F("  → Arrêt du programme\r\n"));
-    delay(200);
+    delay(300);
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     sleep_enable();
     sleep_mode();

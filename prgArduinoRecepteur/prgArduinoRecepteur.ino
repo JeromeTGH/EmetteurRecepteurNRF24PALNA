@@ -14,7 +14,7 @@
 
   Remarques :     - le microcontrôleur utilisé ici sera un ATmega328P (version DIP)
                   - la programmation du µC se fera via l'IDE Arduino, en utilisant un FTDI comme passerelle
-                  - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix fréquences de transmission possibles
+                  - un sélecteur rotatif à 10 positions permettra de choisir l'une des dix canaux de transmission possibles
                   - le récepteur dispose de 4 relais, respectivement pilotés par les 4 boutons poussoirs de l'émetteur
 
   Dépôt GitHub :  https://github.com/JeromeTGH/EmetteurRecepteurNRF24PALNA (fichiers sources du projet, émetteur + récepteur)
@@ -27,22 +27,22 @@
 // Inclusion de la librairie nRF24 (auteur : https://github.com/nRF24/RF24)
 #include <RF24.h>
 
-// ************************************************************************
+// ************************************************************************************************************************************
 // Partie débogage, au besoin
-#define DEBUG 1                                       // Mettre à 0 ou à 1 pour afficher ou non les messages en retour sur le port série
+#define DEBUG 1                                       // Mettre à 0 ou à 1 pour afficher ou non les messages de debug sur le port série
 
 #if DEBUG
-  #define DEBUGMSG(message) Serial.print(message)     // Pour info, ajouter \r\n à la fin du message, pour un retour à la ligne
+  #define DEBUGMSG(message) Serial.print(message)     // Pour info, ajouter un \r\n à la fin du message, pour un retour à la ligne
 #else
   #define DEBUGMSG(message)
 #endif
-// ************************************************************************
+// ************************************************************************************************************************************
 
 
 // Définition des broches de raccordement à l'ATmega328P
 //      Remarque 1 : hors lignes UART (TX/RX) et SPI (MISO/MOSI/SCK)
-//      Remarque 2 : les broches A0/A1/A2/A3/A4/A5 de ce programme arduino correspondent respectivement aux broches physiques 23/24/25/26/27/28 de la puce ATmega328P
-//      Remarque 3 : les broches D2/D3/D4/D5/D6/D7/D9/D10 de ce programme arduino correspondent respectivement aux broches physiques 4/5/6/11/12/13/15/16 de l'ATmega328P
+//      Remarque 2 : pour info, les broches A0/A1/A2/A3/A4/A5 de ce programme arduino correspondent respectivement aux broches physiques 23/24/25/26/27/28 de la puce ATmega328P
+//      Remarque 3 : pour info, les broches D2/D3/D4/D5/D6/D7/D9/D10 de ce programme arduino correspondent respectivement aux broches physiques 4/5/6/11/12/13/15/16 de l'ATmega328P
 #define sortieA0_ATmega328P_activation_relais_1                         A0          // Pour activer le relais 1
 #define sortieA1_ATmega328P_desactivation_relais_1                      A1          // Pour désactiver le relais 1
 #define sortieA2_ATmega328P_activation_relais_2                         A2          // Pour activer le relais 2
@@ -63,13 +63,14 @@
 #define sortieD10_ATmega328P_vers_entree_CSN_du_module_NRF24L01_PA_LNA  10          // Pour piloter la ligne "CSN" du module NRF24L01+PA+LNA
 
 
-// Définition du canal de communication "de base" (la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
+// Définition du canal de communication "de base" (définissant la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
 #define canal_de_communication_de_base_pour_transmissions_NRF24         79          // Nota 1 : 126 canaux sont disposibles (de 0 à 125, permettant d'échanger de 2,4GHz à 2,525GHz inclus)
-// Nota 2 : la valeur à mettre ici doit être comprise entre 0 et 116, puisqu'on pourra ajouter entre 0 et 9 "crans" (via le sélecteur à 10 positions)
-// Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur arbitraire (à ajuster personnellement, en fait)
+// Nota 1 : les modules nRF24 peuvent recevoir sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125
+// Nota 2 : la valeur à mettre ici doit être inférieure ou égale à 116 ici, du fait qu'on peut rajouter jusqu'à 9 "crans", sur le sélecteur à 10 positions soudé sur PCB
+// Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur totalement arbitraire (à ajuster comme bon nous semble, du moment qu'on est entre 0 et 116 inclus)
 
 // Définition du nom du tunnel de communication
-const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, côté émetteur et côté récepteur)
+const byte nom_de_notre_tunnel_de_communication[6] = "ERJT1";     // Attention : 5 caractères max ici (devra être identique, du côté émetteur)
 
 // Définition des messages attendus, selon quel bouton poussoir est actionné au niveau de l'émetteur (de 1 à 32 caractères, maximum)
 const char message_si_bouton_poussoir_1_appuye[] = "Bouton_1_appuye";
@@ -125,9 +126,9 @@ void setup() {
   digitalWrite(sortieA5_ATmega328P_desactivation_relais_3, LOW);
   digitalWrite(sortieD6_ATmega328P_activation_relais_4, LOW);
   digitalWrite(sortieD7_ATmega328P_desactivation_relais_4, LOW);
-  digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour l'instant
+  digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);           // Led "programme démarré" éteinte, pour commencer
 
-  // Clignotage LED, avant tentative de démarrage module nRF24
+  // Test de la LED "programme démarré" (clignotements rapides), pour que l'utilisateur puisse vérifier qu'elle fonctionne bien
   faireClignoterLedAuDemarrage();
 
   // Temporaire : utilitaire de test des relais (avec réinitialisation préalable de leur état)
@@ -147,16 +148,21 @@ void setup() {
   
   // Initialisation du module nRF24L01
   if (!module_nrf24.begin()) {
-    // En cas d'échec d'initialisation : boucle infinie / suspension du programme
-    while (1) {}
+    // En cas d'échec d'initialisation : arrêt du programme
+    DEBUGMSG(F("\r\n"));
+    DEBUGMSG(F("Initialisation du module nRF24 impossible. Arrêt du programme.)\r\n"));
+    delay(300);
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sleep_enable();
+    sleep_mode();
   }
 
   // Paramétrage de la librairie RF24
   module_nrf24.setAddressWidth(5);                                                    // Fixation de la longueur d'adresse du tunnel (5 octets, par défaut)
   module_nrf24.setChannel(valeur_du_canal_de_communication_reel);                     // Fixation du canal de transmission, pour le récepteur
-  module_nrf24.setDataRate(RF24_250KBPS);                                             // Vitesse de communication RF24_250KBPS, RF24_1MBPS, ou RF24_2MBPS ("transmettre moins vite permet d'aller plus loin")
+  module_nrf24.setDataRate(RF24_250KBPS);                                             // Vitesse de communication RF24_250KBPS, RF24_1MBPS, ou RF24_2MBPS (en sachant que "transmettre moins vite permet d'aller plus loin")
   module_nrf24.openReadingPipe(0, nom_de_notre_tunnel_de_communication);              // Ouverture du tunnel de transmission en LECTURE, avec le "nom" qu'on lui a donné (via le "pipe 0", par exemple)
-  module_nrf24.setPALevel(RF24_PA_MAX);                                               // Niveau RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, ou RF24_PA_MAX (mise au max, pour pouvoir communiquer le plus loin possible)
+  module_nrf24.setPALevel(RF24_PA_MAX);                                               // Niveau RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, ou RF24_PA_MAX (mis au max, pour pouvoir communiquer le plus loin possible)
   module_nrf24.startListening();                                                      // Activation de l'écoute, car ici c'est le récepteur !
 
   // Petite pause de stabilisation
@@ -265,11 +271,11 @@ void loop() {
     }
   }
 
-  // Vérifie si le canal n'a pas été changé, en cours de route
+  // Vérification si changement manuel de canal, sur le PCB
   uint8_t valeur_de_canal_relue = retourneValeurDuCanalChoisi();
   if(valeur_de_canal_relue != precedente_valeur_du_canal_choisi_sur_PCB) {
-    delay(150);                                                     // Anti-rebond
-    valeur_de_canal_relue = retourneValeurDuCanalChoisi();          // puis relecture pour être sûr, après ce petit délai
+    delay(150);                                                     // Anti-rebond, pour filtrer les éventuels états indésirables,
+    valeur_de_canal_relue = retourneValeurDuCanalChoisi();          // puis relecture de la valeur après coup
     uint8_t valeur_du_nouveau_canal = canal_de_communication_de_base_pour_transmissions_NRF24 + valeur_de_canal_relue;
     module_nrf24.setChannel(valeur_du_nouveau_canal);
     precedente_valeur_du_canal_choisi_sur_PCB = valeur_de_canal_relue;
@@ -301,7 +307,7 @@ void faireClignoterLedAuDemarrage() {
     digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, HIGH);
     delay(50);
 
-    // Extinntion LED
+    // Extinction LED
     digitalWrite(sortieD8_ATmega328P_pilotage_led_indication_programme_demarre, LOW);
     delay(100);
   }
@@ -359,7 +365,7 @@ void utilitaireDeTestRelais() {
 // ======================================
 // Fonction : retourneValeurDuCanalChoisi
 // ======================================
-//      Nota : renvoi la valeur (pouvant aller de 0 à 9) de l'encodeur rotatif, soudé sur le PCB
+//      Nota : renvoi la valeur (pouvant aller de 0 à 9 inclus) de l'encodeur rotatif, soudé sur le PCB
 uint8_t retourneValeurDuCanalChoisi() {
 
   // Variable qui sera retournée
@@ -371,13 +377,13 @@ uint8_t retourneValeurDuCanalChoisi() {
   uint8_t valeur_ligne_4 = digitalRead(entreeD4_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions);
   uint8_t valeur_ligne_8 = digitalRead(entreeD5_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions);
 
-  // Détermination de la valeur décimale
+  // Détermination de la valeur décimale correspondante
   valeur_du_canal_choisi = 0;
   if (valeur_ligne_1 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 1;
   if (valeur_ligne_2 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 2;
   if (valeur_ligne_4 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 4;
   if (valeur_ligne_8 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 8;
 
-  // Retourne la valeur décimale correspondant au canal choisi, sur l'encodeur
+  // Retourne la valeur décimale correspondant au canal choisi sur l'encodeur
   return valeur_du_canal_choisi;
 }
