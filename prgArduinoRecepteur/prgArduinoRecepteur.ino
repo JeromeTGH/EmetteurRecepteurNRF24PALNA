@@ -385,7 +385,25 @@ uint8_t retourneValeurDuCanalChoisi() {
   uint8_t valeur_ligne_4 = digitalRead(entreeD4_ATmega328P_lecture_etat_ligne_4_encodeur_10_positions);
   uint8_t valeur_ligne_8 = digitalRead(entreeD5_ATmega328P_lecture_etat_ligne_8_encodeur_10_positions);
 
+  // Pour rappel, voici quels sont les états de lignes en fonction de la valeur sélectionnée sur l'encodeur
+  // -------------------------------------------------------------------------------------------------------------------------------
+  // | Valeur choisie sur encodeur | Etat ligne de poids 8 | Etat ligne de poids 4 | Etat ligne de poids 2 | Etat ligne de poids 1 | 
+  // -------------------------------------------------------------------------------------------------------------------------------
+  // |              0              |           0           |           0           |           0           |           0           |
+  // |              1              |           0           |           0           |           0           |           1           |
+  // |              2              |           0           |           0           |           1           |           0           |
+  // |              3              |           0           |           0           |           1           |           1           |
+  // |              4              |           0           |           1           |           0           |           0           |
+  // |              5              |           0           |           1           |           0           |           1           |
+  // |              6              |           0           |           1           |           1           |           0           |
+  // |              7              |           0           |           1           |           1           |           1           |
+  // |              8              |           1           |           0           |           0           |           0           |
+  // |              9              |           1           |           0           |           0           |           1           |
+  // -------------------------------------------------------------------------------------------------------------------------------
+
   // Détermination de la valeur décimale correspondante
+  // (en sachant qu'une ligne est "active" lorsqu'elle est à l'état bas, et "au repos" lorsqu'elle est à l'état haut,
+  // du fait du branchement des contacts de l'encodeur et des résistances pull-up activées au sein du microcontrôleur)
   valeur_du_canal_choisi = 0;
   if (valeur_ligne_1 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 1;
   if (valeur_ligne_2 == LOW) valeur_du_canal_choisi = valeur_du_canal_choisi + 2;
