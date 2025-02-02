@@ -68,7 +68,7 @@
 // Définition du canal de communication "de base" (définissant la fréquence de base, à laquelle l'émetteur et le récepteur vont communiquer)
 #define canal_de_communication_de_base_pour_transmissions_NRF24         79
 // Nota 1 : les modules nRF24 peuvent recevoir sur l'un des 126 canaux à disposition, allant du canal 0 au canal 125 (fréquence de 2,4oo GHz à 2,525 GHz, en fait)
-// Nota 2 : la valeur à mettre ici doit être inférieure ou égale à 116 ici, du fait qu'on peut rajouter jusqu'à 9 "crans", sur le sélecteur à 10 positions soudé sur PCB
+// Nota 2 : la valeur à mettre ici doit être inférieure ou égale à 116, du fait qu'on peut rajouter jusqu'à 9 "crans", sur le sélecteur à 10 positions soudé sur PCB
 // Nota 3 : ici j'ai mis 79 par défaut, ce qui est une valeur totalement arbitraire (à ajuster comme bon nous semble, du moment qu'on est entre 0 et 116 inclus)
 
 // Définition du nom du tunnel de communication
